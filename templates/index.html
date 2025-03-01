@@ -65,29 +65,29 @@
         const searchInput = document.getElementById('tokenSearch');
         const clearButton = document.getElementById('clearSearch');
         const tokenRows = document.querySelectorAll('.token-row');
-        
+
         // Search functionality
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase().trim();
             filterTokens(searchTerm);
         });
-        
+
         // Clear search
         clearButton.addEventListener('click', function() {
             searchInput.value = '';
             filterTokens('');
         });
-        
+
         // Filter tokens based on search term
         function filterTokens(searchTerm) {
             let visibleCount = 0;
-            
+
             tokenRows.forEach(row => {
                 const symbol = row.getAttribute('data-symbol');
                 const name = row.getAttribute('data-name');
-                
-                if (searchTerm === '' || 
-                    symbol.includes(searchTerm) || 
+
+                if (searchTerm === '' ||
+                    symbol.includes(searchTerm) ||
                     name.includes(searchTerm)) {
                     row.style.display = '';
                     visibleCount++;
@@ -95,11 +95,11 @@
                     row.style.display = 'none';
                 }
             });
-            
+
             // Show a message if no tokens match the search
             const tbody = document.getElementById('tokenTableBody');
             let noResultsRow = document.getElementById('noResultsRow');
-            
+
             if (visibleCount === 0 && searchTerm !== '') {
                 if (!noResultsRow) {
                     noResultsRow = document.createElement('tr');

@@ -19,19 +19,19 @@
                 <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | format(',.8f') }}</p>
                 <p><strong>Circulating Supply:</strong> {{ token_info.circulatingSupply if token_info.circulatingSupply is string else (token_info.circulatingSupply | float) | format(',.8f') }}</p>
                 <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
-                
+
                 {% if token_info.metadata %}
-                    {% if token_info.metadata.url %}
-                        <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
-                    {% endif %}
-                    
-                    {% if token_info.metadata.description %}
-                        <p><strong>Description:</strong> {{ token_info.metadata.description }}</p>
-                    {% endif %}
-                    
-                    {% if token_info.metadata.icon %}
-                        <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid mt-3" style="max-height: 100px;">
-                    {% endif %}
+                {% if token_info.metadata.url %}
+                <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
+                {% endif %}
+
+                {% if token_info.metadata.description %}
+                <p><strong>Description:</strong> {{ token_info.metadata.description }}</p>
+                {% endif %}
+
+                {% if token_info.metadata.icon %}
+                <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid mt-3" style="max-height: 100px;">
+                {% endif %}
                 {% endif %}
             </div>
             <div class="card-footer">
@@ -71,8 +71,7 @@
                                     {% set percentage = (balance / supply) * 100 %}
                                     {{ '%.2f' | format(percentage) }}%
                                     <div class="progress" style="height: 5px;">
-                                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%;" 
-                                             aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                 </td>
                             </tr>
