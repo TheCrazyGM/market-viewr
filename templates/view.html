@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Market-Viewr - {{ token }} Info{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ token }} Information</h1>
+    <a href="{{ url_for('market', token=token) }}" class="btn btn-outline-primary">View Market Data</a>
+</div>
+
+<div class="row">
+    <!-- Token Info Card -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ token_info.name }} ({{ token_info.symbol }})</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | format(',.8f') }}</p>
+                <p><strong>Circulating Supply:</strong> {{ token_info.circulatingSupply if token_info.circulatingSupply is string else (token_info.circulatingSupply | float) | format(',.8f') }}</p>
+                <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
+                
+                {% if token_info.metadata %}
+                    {% if token_info.metadata.url %}
+                        <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
+                    {% endif %}
+                    
+                    {% if token_info.metadata.description %}
+                        <p><strong>Description:</strong> {{ token_info.metadata.description }}</p>
+                    {% endif %}
+                    
+                    {% if token_info.metadata.icon %}
+                        <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid mt-3" style="max-height: 100px;">
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">
+                    Powered by Hive-Engine
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Richlist -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ token }} Richlist</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Account</th>
+                                <th>Balance</th>
+                                <th>% of Supply</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for holder in richlist %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ holder.account }}</td>
+                                <td>{{ holder.balance if holder.balance is string else (holder.balance | float) | format(',.8f') }}</td>
+                                <td>
+                                    {% set balance = holder.balance | float if holder.balance is not none else 0 %}
+                                    {% set supply = token_info.supply | float if token_info.supply is not none else 1 %}
+                                    {% set percentage = (balance / supply) * 100 %}
+                                    {{ '%.2f' | format(percentage) }}%
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%;" 
+                                             aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

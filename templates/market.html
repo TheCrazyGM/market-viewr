@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Market-Viewr - {{ token }} Market{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ token }} Market Data</h1>
+    <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-primary">View Token Info</a>
+</div>
+
+<div class="row">
+    <!-- Token Info Card -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ token_info.name }} ({{ token_info.symbol }})</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | format(',.8f') }}</p>
+                <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
+                {% if token_info.metadata %}
+                    <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
+                    {% if token_info.metadata.icon %}
+                        <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid" style="max-height: 100px;">
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">
+                    Powered by Hive-Engine
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Market Chart -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header" style="background-color: #1a73e8; color: white;">
+                <h5 class="mb-0">Price Chart ({{ token }}/SWAP.HIVE)</h5>
+            </div>
+            <div class="card-body">
+                {% if chart_json %}
+                <div id="candlestick-chart" style="height: 500px;"></div>
+                {% else %}
+                <div class="alert alert-warning">
+                    No market data available for {{ token }}.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Books -->
+<div class="row">
+    <!-- Buy Book -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Buy Orders</h5>
+            </div>
+            <div class="card-body">
+                {% if buy_book %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Account</th>
+                                <th>Quantity</th>
+                                <th>Price (HIVE)</th>
+                                <th>Total (HIVE)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in buy_book %}
+                            <tr>
+                                <td>{{ order._id }}</td>
+                                <td>{{ order.account }}</td>
+                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}</td>
+                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f') }}</td>
+                                <td>
+                                    {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
+                                    {% set price = order.price | float if order.price is not none else 0 %}
+                                    {% set total = quantity * price %}
+                                    {{ '%.8f' | format(total) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">No buy orders available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sell Book -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Sell Orders</h5>
+            </div>
+            <div class="card-body">
+                {% if sell_book %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Account</th>
+                                <th>Quantity</th>
+                                <th>Price (HIVE)</th>
+                                <th>Total (HIVE)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in sell_book %}
+                            <tr>
+                                <td>{{ order._id }}</td>
+                                <td>{{ order.account }}</td>
+                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}</td>
+                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f') }}</td>
+                                <td>
+                                    {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
+                                    {% set price = order.price | float if order.price is not none else 0 %}
+                                    {% set total = quantity * price %}
+                                    {{ '%.8f' | format(total) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">No sell orders available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trade History -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header" style="background-color: #1a1d23; color: white;">
+                <h5 class="mb-0">Recent Trade History</h5>
+            </div>
+            <div class="card-body">
+                {% if trade_history %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Type</th>
+                                <th>Account</th>
+                                <th>Quantity</th>
+                                <th>Price (HIVE)</th>
+                                <th>Volume (HIVE)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in trade_history %}
+                            <tr>
+                                <td>{{ trade.timestamp | int | timestamp_to_date }}</td>
+                                <td class="{% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {{ trade.type | upper }}
+                                </td>
+                                <td>{{ trade.buyer if trade.type == 'buy' else trade.seller }}</td>
+                                <td>{{ trade.quantity }}</td>
+                                <td>{{ trade.price }}</td>
+                                <td>{{ trade.volume }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">No trade history available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if chart_json %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = {{ chart_json | safe }};
+        
+        // Initial plot
+        Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {responsive: true});
+        
+        // Check initial theme and update chart
+        const initialDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        if (initialDarkMode) {
+            updateChartForDarkMode();
+        }
+        
+        // Update chart when theme changes
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            setTimeout(function() {
+                const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                
+                if (isDarkMode) {
+                    updateChartForDarkMode();
+                } else {
+                    updateChartForLightMode();
+                }
+            }, 100);
+        });
+        
+        function updateChartForDarkMode() {
+            // Update layout for dark mode
+            Plotly.relayout('candlestick-chart', {
+                'paper_bgcolor': '#212529',
+                'plot_bgcolor': '#2c3034',
+                'font.color': '#ffffff',
+                'xaxis.gridcolor': '#495057',
+                'xaxis.linecolor': '#6c757d',
+                'xaxis.tickcolor': '#6c757d',
+                'xaxis.tickfont.color': '#ffffff',
+                'yaxis.gridcolor': '#495057',
+                'yaxis.linecolor': '#6c757d',
+                'yaxis.tickcolor': '#6c757d',
+                'yaxis.tickfont.color': '#ffffff'
+            });
+            
+            // Update candlestick colors for better visibility in dark mode
+            const gd = document.getElementById('candlestick-chart');
+            if (gd && gd.data) {
+                for (let i = 0; i < gd.data.length; i++) {
+                    if (gd.data[i].type === 'candlestick') {
+                        Plotly.restyle('candlestick-chart', {
+                            'increasing.line.color': '#00e676',
+                            'increasing.fillcolor': '#00e676',
+                            'decreasing.line.color': '#ff5252',
+                            'decreasing.fillcolor': '#ff5252',
+                            'line.width': 3
+                        }, [i]);
+                    }
+                }
+            }
+        }
+        
+        function updateChartForLightMode() {
+            // Update layout for light mode
+            Plotly.relayout('candlestick-chart', {
+                'paper_bgcolor': '#ffffff',
+                'plot_bgcolor': '#ffffff',
+                'font.color': '#212529',
+                'xaxis.gridcolor': '#e9ecef',
+                'xaxis.linecolor': '#ced4da',
+                'xaxis.tickcolor': '#ced4da',
+                'xaxis.tickfont.color': '#212529',
+                'yaxis.gridcolor': '#e9ecef',
+                'yaxis.linecolor': '#ced4da',
+                'yaxis.tickcolor': '#ced4da',
+                'yaxis.tickfont.color': '#212529'
+            });
+            
+            // Update candlestick colors for light mode
+            const gd = document.getElementById('candlestick-chart');
+            if (gd && gd.data) {
+                for (let i = 0; i < gd.data.length; i++) {
+                    if (gd.data[i].type === 'candlestick') {
+                        Plotly.restyle('candlestick-chart', {
+                            'increasing.line.color': '#26a69a',
+                            'increasing.fillcolor': '#26a69a',
+                            'decreasing.line.color': '#ef5350',
+                            'decreasing.fillcolor': '#ef5350',
+                            'line.width': 2
+                        }, [i]);
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

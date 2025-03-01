@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Market-Viewr - Token List{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Hive-Engine Tokens</h1>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Available Tokens</h5>
+                <div class="input-group" style="max-width: 300px;">
+                    <input type="text" id="tokenSearch" class="form-control" placeholder="Search tokens...">
+                    <button class="btn btn-light" type="button" id="clearSearch">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Symbol</th>
+                                <th>Name</th>
+                                <th>Total Supply</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tokenTableBody">
+                            {% for token in tokens %}
+                            <tr class="token-row" data-symbol="{{ token.symbol | lower }}" data-name="{{ token.name | lower }}">
+                                <td>
+                                    {% if token.metadata and token.metadata.icon %}
+                                    <img src="{{ token.metadata.icon }}" alt="{{ token.symbol }} icon" class="img-fluid" style="max-height: 30px; max-width: 30px;">
+                                    {% else %}
+                                    <span class="text-muted">No icon</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ token.symbol }}</td>
+                                <td>{{ token.name }}</td>
+                                <td>{{ token.supply if token.supply is string else (token.supply | float) | format(',.8f') }}</td>
+                                <td>
+                                    <a href="{{ url_for('market', token=token.symbol) }}" class="btn btn-sm btn-outline-primary">Market</a>
+                                    <a href="{{ url_for('view', token=token.symbol) }}" class="btn btn-sm btn-outline-secondary">Info</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('tokenSearch');
+        const clearButton = document.getElementById('clearSearch');
+        const tokenRows = document.querySelectorAll('.token-row');
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            filterTokens(searchTerm);
+        });
+        
+        // Clear search
+        clearButton.addEventListener('click', function() {
+            searchInput.value = '';
+            filterTokens('');
+        });
+        
+        // Filter tokens based on search term
+        function filterTokens(searchTerm) {
+            let visibleCount = 0;
+            
+            tokenRows.forEach(row => {
+                const symbol = row.getAttribute('data-symbol');
+                const name = row.getAttribute('data-name');
+                
+                if (searchTerm === '' || 
+                    symbol.includes(searchTerm) || 
+                    name.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show a message if no tokens match the search
+            const tbody = document.getElementById('tokenTableBody');
+            let noResultsRow = document.getElementById('noResultsRow');
+            
+            if (visibleCount === 0 && searchTerm !== '') {
+                if (!noResultsRow) {
+                    noResultsRow = document.createElement('tr');
+                    noResultsRow.id = 'noResultsRow';
+                    const td = document.createElement('td');
+                    td.colSpan = 5;
+                    td.className = 'text-center py-3';
+                    td.textContent = 'No tokens found matching your search.';
+                    noResultsRow.appendChild(td);
+                    tbody.appendChild(noResultsRow);
+                }
+            } else if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+    });
+</script>
+{% endblock %}

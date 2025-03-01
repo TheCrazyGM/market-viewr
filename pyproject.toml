@@ -1,0 +1,26 @@
+[project]
+name = "market-viewr"
+version = "0.1.0"
+description = "A web application for viewing Hive-Engine token market data and trade history"
+readme = "README.md"
+authors = [
+    {name = "thecrazygm", email = "thecrazygm@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "flask",
+    "requests",
+    "pandas",
+    "plotly",
+    "hiveengine",
+]
+requires-python = ">=3.13"
+
+[project.urls]
+"Homepage" = "https://github.com/TheCrazyGM/market-viewr"
+"Bug Tracker" = "https://github.com/TheCrazyGM/market-viewr/issues"
