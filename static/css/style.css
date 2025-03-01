@@ -1,7 +1,8 @@
 /* Custom styles for Market-Viewr */
 
 body {
-    padding-bottom: 70px; /* For the fixed footer */
+    padding-bottom: 70px;
+    /* For the fixed footer */
 }
 
 .footer {
@@ -89,11 +90,13 @@ body {
 }
 
 [data-bs-theme="dark"] .text-success {
-    color: #00e676 !important; /* Brighter green for dark mode */
+    color: #00e676 !important;
+    /* Brighter green for dark mode */
 }
 
 [data-bs-theme="dark"] .text-danger {
-    color: #ff5252 !important; /* Brighter red for dark mode */
+    color: #ff5252 !important;
+    /* Brighter red for dark mode */
 }
 
 /* Button styles for dark mode */

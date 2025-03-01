@@ -37,12 +37,12 @@ function sortTable(table, column) {
     const rows = Array.from(table.querySelectorAll('tbody tr'));
     const isNumeric = rows.length > 0 && !isNaN(parseFloat(rows[0].cells[column].textContent));
     const direction = table.getAttribute('data-sort-direction') === 'asc' ? -1 : 1;
-    
+
     // Sort the rows
     rows.sort((a, b) => {
         let aValue = a.cells[column].textContent.trim();
         let bValue = b.cells[column].textContent.trim();
-        
+
         if (isNumeric) {
             // Extract numbers only
             aValue = parseFloat(aValue.replace(/[^0-9.-]+/g, ''));
@@ -52,11 +52,11 @@ function sortTable(table, column) {
             return direction * aValue.localeCompare(bValue);
         }
     });
-    
+
     // Update the table
     const tbody = table.querySelector('tbody');
     rows.forEach(row => tbody.appendChild(row));
-    
+
     // Toggle sort direction
     table.setAttribute('data-sort-direction', direction === 1 ? 'asc' : 'desc');
 }

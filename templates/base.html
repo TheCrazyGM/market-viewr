@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
     <!-- Header -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -59,7 +61,7 @@
             const darkIcon = document.getElementById('darkIcon');
             const htmlElement = document.documentElement;
             const appFooter = document.getElementById('appFooter');
-            
+
             // Check for saved theme preference
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
@@ -67,18 +69,18 @@
                 updateIcons(savedTheme);
                 updateFooter(savedTheme);
             }
-            
+
             // Toggle theme on button click
             themeToggle.addEventListener('click', function() {
                 const currentTheme = htmlElement.getAttribute('data-bs-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                
+
                 htmlElement.setAttribute('data-bs-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
                 updateIcons(newTheme);
                 updateFooter(newTheme);
             });
-            
+
             // Update icons based on current theme
             function updateIcons(theme) {
                 if (theme === 'dark') {
@@ -89,7 +91,7 @@
                     darkIcon.classList.add('d-none');
                 }
             }
-            
+
             // Update footer based on current theme
             function updateFooter(theme) {
                 if (theme === 'dark') {
@@ -106,4 +108,5 @@
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

@@ -19,10 +19,10 @@
                 <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | format(',.8f') }}</p>
                 <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
                 {% if token_info.metadata %}
-                    <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
-                    {% if token_info.metadata.icon %}
-                        <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid" style="max-height: 100px;">
-                    {% endif %}
+                <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
+                {% if token_info.metadata.icon %}
+                <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid" style="max-height: 100px;">
+                {% endif %}
                 {% endif %}
             </div>
             <div class="card-footer">
@@ -193,22 +193,28 @@
 {% if chart_json %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const chartData = {{ chart_json | safe }};
-        
+        const chartData = {
+            {
+                chart_json | safe
+            }
+        };
+
         // Initial plot
-        Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {responsive: true});
-        
+        Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {
+            responsive: true
+        });
+
         // Check initial theme and update chart
         const initialDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
         if (initialDarkMode) {
             updateChartForDarkMode();
         }
-        
+
         // Update chart when theme changes
         document.getElementById('themeToggle').addEventListener('click', function() {
             setTimeout(function() {
                 const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-                
+
                 if (isDarkMode) {
                     updateChartForDarkMode();
                 } else {
@@ -216,7 +222,7 @@
                 }
             }, 100);
         });
-        
+
         function updateChartForDarkMode() {
             // Update layout for dark mode
             Plotly.relayout('candlestick-chart', {
@@ -232,7 +238,7 @@
                 'yaxis.tickcolor': '#6c757d',
                 'yaxis.tickfont.color': '#ffffff'
             });
-            
+
             // Update candlestick colors for better visibility in dark mode
             const gd = document.getElementById('candlestick-chart');
             if (gd && gd.data) {
@@ -249,7 +255,7 @@
                 }
             }
         }
-        
+
         function updateChartForLightMode() {
             // Update layout for light mode
             Plotly.relayout('candlestick-chart', {
@@ -265,7 +271,7 @@
                 'yaxis.tickcolor': '#ced4da',
                 'yaxis.tickfont.color': '#212529'
             });
-            
+
             // Update candlestick colors for light mode
             const gd = document.getElementById('candlestick-chart');
             if (gd && gd.data) {
