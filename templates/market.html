@@ -18,14 +18,17 @@
                 <h5 class="mb-0"><i class="bi bi-tag-fill me-2"></i>{{ token_info.name }} ({{ token_info.symbol }})</h5>
             </div>
             <div class="card-body">
-                <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | format(',.8f') }}</p>
+                <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else
+                    (token_info.supply | float) | format(',.8f') }}</p>
                 <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
                 {% if token_info.metadata %}
                 {% if token_info.metadata.url %}
-                <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
+                <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{
+                        token_info.metadata.url }}</a></p>
                 {% endif %}
                 {% if token_info.metadata.icon %}
-                <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid" style="max-height: 100px;">
+                <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid"
+                    style="max-height: 100px;">
                 {% endif %}
                 {% endif %}
             </div>
@@ -40,13 +43,18 @@
     <!-- Market Chart -->
     <div class="col-md-8 mb-4">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #1a73e8; color: white;">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                style="background-color: #1a73e8; color: white;">
                 <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Price Chart ({{ token }}/SWAP.HIVE)</h5>
                 <div class="btn-group btn-group-sm">
-                    <button id="timespan-7d" class="btn btn-light {% if request.view_args.get('days', 30) == 7 %}active{% endif %}">7d</button>
-                    <button id="timespan-30d" class="btn btn-light {% if request.view_args.get('days', 30) == 30 or (request.view_args.get('days') is none and not request.path.endswith('/all')) %}active{% endif %}">30d</button>
-                    <button id="timespan-90d" class="btn btn-light {% if request.view_args.get('days', 30) == 90 %}active{% endif %}">90d</button>
-                    <button id="timespan-all" class="btn btn-light {% if request.path.endswith('/all') %}active{% endif %}">All</button>
+                    <button id="timespan-7d"
+                        class="btn btn-light {% if request.view_args.get('days', 30) == 7 %}active{% endif %}">7d</button>
+                    <button id="timespan-30d"
+                        class="btn btn-light {% if request.view_args.get('days', 30) == 30 or (request.view_args.get('days') is none and not request.path.endswith('/all')) %}active{% endif %}">30d</button>
+                    <button id="timespan-90d"
+                        class="btn btn-light {% if request.view_args.get('days', 30) == 90 %}active{% endif %}">90d</button>
+                    <button id="timespan-all"
+                        class="btn btn-light {% if request.path.endswith('/all') %}active{% endif %}">All</button>
                 </div>
             </div>
             <div class="card-body">
@@ -88,8 +96,10 @@
                             <tr>
                                 <td>{{ order._id }}</td>
                                 <td>{{ order.account }}</td>
-                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}</td>
-                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f') }}</td>
+                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) |
+                                    format(',.8f') }}</td>
+                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f')
+                                    }}</td>
                                 <td>
                                     {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
                                     {% set price = order.price | float if order.price is not none else 0 %}
@@ -132,8 +142,10 @@
                             <tr>
                                 <td>{{ order._id }}</td>
                                 <td>{{ order.account }}</td>
-                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}</td>
-                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f') }}</td>
+                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) |
+                                    format(',.8f') }}</td>
+                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f')
+                                    }}</td>
                                 <td>
                                     {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
                                     {% set price = order.price | float if order.price is not none else 0 %}
@@ -178,7 +190,8 @@
                             {% for trade in trade_history %}
                             <tr>
                                 <td>{{ trade.timestamp | int | timestamp_to_date }}</td>
-                                <td class="{% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                <td
+                                    class="{% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
                                     {{ trade.type | upper }}
                                 </td>
                                 <td>{{ trade.buyer if trade.type == 'buy' else trade.seller }}</td>
@@ -202,158 +215,142 @@
 {% block scripts %}
 {% if chart_json %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const chartData = {
-            {
-                chart_json | safe
-            }
-        };
-        const tokenSymbol = '{{ token }}';
+    document.addEventListener('DOMContentLoaded', function () {
+    const chartData = {{ chart_json | safe }};
+    const tokenSymbol = '{{ token }}';
 
-        // Determine current timespan
-        {
-            %
-            if request.path.endswith('/all') %
-        }
-        let currentTimespan = 'all';
-        {
-            %
-            else %
-        }
-        let currentTimespan = {
-            {
-                request.view_args.get('days', 30)
-            }
-        }; // Get current timespan from URL or default to 30
-        {
-            % endif %
-        }
+    // Determine current timespan
+    {% if request.path.endswith('/all') %}
+    let currentTimespan = 'all';
+    {% else %}
+    let currentTimespan = {{request.view_args.get('days', 30)}};
+    {% endif %}
 
-        // Initial plot
-        Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {
-            responsive: true
-        });
+    // Initial plot
+    Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {
+        responsive: true
+    });
 
-        // Check initial theme and update chart
-        const initialDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-        if (initialDarkMode) {
+    // Check initial theme and update chart
+    const initialDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    if (initialDarkMode) {
+        updateChartForDarkMode();
+    }
+
+    // Update chart when theme changes
+    document.getElementById('themeToggle').addEventListener('change', function () {
+        const isDarkMode = this.checked;
+
+        if (isDarkMode) {
             updateChartForDarkMode();
+        } else {
+            updateChartForLightMode();
         }
+    });
 
-        // Update chart when theme changes
-        document.getElementById('themeToggle').addEventListener('change', function() {
-            const isDarkMode = this.checked;
+    // Timespan button handlers
+    document.getElementById('timespan-7d').addEventListener('click', function () {
+        updateTimespan(7, this);
+    });
 
-            if (isDarkMode) {
-                updateChartForDarkMode();
-            } else {
-                updateChartForLightMode();
-            }
+    document.getElementById('timespan-30d').addEventListener('click', function () {
+        updateTimespan(30, this);
+    });
+
+    document.getElementById('timespan-90d').addEventListener('click', function () {
+        updateTimespan(90, this);
+    });
+
+    document.getElementById('timespan-all').addEventListener('click', function () {
+        updateTimespan('all', this);
+    });
+
+    // Function to update timespan
+    function updateTimespan(days, button) {
+        if (currentTimespan === days) return; // No need to reload if same timespan
+
+        // Update button states
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
         });
+        button.classList.add('active');
 
-        // Timespan button handlers
-        document.getElementById('timespan-7d').addEventListener('click', function() {
-            updateTimespan(7, this);
-        });
+        // Update current timespan
+        currentTimespan = days;
 
-        document.getElementById('timespan-30d').addEventListener('click', function() {
-            updateTimespan(30, this);
-        });
-
-        document.getElementById('timespan-90d').addEventListener('click', function() {
-            updateTimespan(90, this);
-        });
-
-        document.getElementById('timespan-all').addEventListener('click', function() {
-            updateTimespan('all', this);
-        });
-
-        // Function to update timespan
-        function updateTimespan(days, button) {
-            if (currentTimespan === days) return; // No need to reload if same timespan
-
-            // Update button states
-            document.querySelectorAll('.btn-group .btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            button.classList.add('active');
-
-            // Update current timespan
-            currentTimespan = days;
-
-            // Redirect to the new timespan URL
-            if (days === 'all') {
-                window.location.href = `/market/${tokenSymbol}/all`;
-            } else {
-                window.location.href = `/market/${tokenSymbol}/${days}`;
-            }
+        // Redirect to the new timespan URL
+        if (days === 'all') {
+            window.location.href = `/market/${tokenSymbol}/all`;
+        } else {
+            window.location.href = `/market/${tokenSymbol}/${days}`;
         }
+    }
 
-        function updateChartForDarkMode() {
-            // Update layout for dark mode
-            Plotly.relayout('candlestick-chart', {
-                'paper_bgcolor': '#212529',
-                'plot_bgcolor': '#2c3034',
-                'font.color': '#ffffff',
-                'xaxis.gridcolor': '#495057',
-                'xaxis.linecolor': '#6c757d',
-                'xaxis.tickcolor': '#6c757d',
-                'xaxis.tickfont.color': '#ffffff',
-                'yaxis.gridcolor': '#495057',
-                'yaxis.linecolor': '#6c757d',
-                'yaxis.tickcolor': '#6c757d',
-                'yaxis.tickfont.color': '#ffffff'
-            });
+    function updateChartForDarkMode() {
+        // Update layout for dark mode
+        Plotly.relayout('candlestick-chart', {
+            'paper_bgcolor': '#212529',
+            'plot_bgcolor': '#2c3034',
+            'font.color': '#ffffff',
+            'xaxis.gridcolor': '#495057',
+            'xaxis.linecolor': '#6c757d',
+            'xaxis.tickcolor': '#6c757d',
+            'xaxis.tickfont.color': '#ffffff',
+            'yaxis.gridcolor': '#495057',
+            'yaxis.linecolor': '#6c757d',
+            'yaxis.tickcolor': '#6c757d',
+            'yaxis.tickfont.color': '#ffffff'
+        });
 
-            // Update candlestick colors for better visibility in dark mode
-            const gd = document.getElementById('candlestick-chart');
-            if (gd && gd.data) {
-                for (let i = 0; i < gd.data.length; i++) {
-                    if (gd.data[i].type === 'candlestick') {
-                        Plotly.restyle('candlestick-chart', {
-                            'increasing.line.color': '#00e676',
-                            'increasing.fillcolor': '#00e676',
-                            'decreasing.line.color': '#ff5252',
-                            'decreasing.fillcolor': '#ff5252',
-                            'line.width': 3
-                        }, [i]);
-                    }
+        // Update candlestick colors for better visibility in dark mode
+        const gd = document.getElementById('candlestick-chart');
+        if (gd && gd.data) {
+            for (let i = 0; i < gd.data.length; i++) {
+                if (gd.data[i].type === 'candlestick') {
+                    Plotly.restyle('candlestick-chart', {
+                        'increasing.line.color': '#00e676',
+                        'increasing.fillcolor': '#00e676',
+                        'decreasing.line.color': '#ff5252',
+                        'decreasing.fillcolor': '#ff5252',
+                        'line.width': 3
+                    }, [i]);
                 }
             }
         }
+    }
 
-        function updateChartForLightMode() {
-            // Update layout for light mode
-            Plotly.relayout('candlestick-chart', {
-                'paper_bgcolor': '#ffffff',
-                'plot_bgcolor': '#ffffff',
-                'font.color': '#212529',
-                'xaxis.gridcolor': '#e9ecef',
-                'xaxis.linecolor': '#ced4da',
-                'xaxis.tickcolor': '#ced4da',
-                'xaxis.tickfont.color': '#212529',
-                'yaxis.gridcolor': '#e9ecef',
-                'yaxis.linecolor': '#ced4da',
-                'yaxis.tickcolor': '#ced4da',
-                'yaxis.tickfont.color': '#212529'
-            });
+    function updateChartForLightMode() {
+        // Update layout for light mode
+        Plotly.relayout('candlestick-chart', {
+            'paper_bgcolor': '#ffffff',
+            'plot_bgcolor': '#ffffff',
+            'font.color': '#212529',
+            'xaxis.gridcolor': '#e9ecef',
+            'xaxis.linecolor': '#ced4da',
+            'xaxis.tickcolor': '#ced4da',
+            'xaxis.tickfont.color': '#212529',
+            'yaxis.gridcolor': '#e9ecef',
+            'yaxis.linecolor': '#ced4da',
+            'yaxis.tickcolor': '#ced4da',
+            'yaxis.tickfont.color': '#212529'
+        });
 
-            // Update candlestick colors for light mode
-            const gd = document.getElementById('candlestick-chart');
-            if (gd && gd.data) {
-                for (let i = 0; i < gd.data.length; i++) {
-                    if (gd.data[i].type === 'candlestick') {
-                        Plotly.restyle('candlestick-chart', {
-                            'increasing.line.color': '#26a69a',
-                            'increasing.fillcolor': '#26a69a',
-                            'decreasing.line.color': '#ef5350',
-                            'decreasing.fillcolor': '#ef5350',
-                            'line.width': 2
-                        }, [i]);
-                    }
+        // Update candlestick colors for light mode
+        const gd = document.getElementById('candlestick-chart');
+        if (gd && gd.data) {
+            for (let i = 0; i < gd.data.length; i++) {
+                if (gd.data[i].type === 'candlestick') {
+                    Plotly.restyle('candlestick-chart', {
+                        'increasing.line.color': '#26a69a',
+                        'increasing.fillcolor': '#26a69a',
+                        'decreasing.line.color': '#ef5350',
+                        'decreasing.fillcolor': '#ef5350',
+                        'line.width': 2
+                    }, [i]);
                 }
             }
         }
+    }
     });
 </script>
 {% endif %}
