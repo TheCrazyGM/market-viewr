@@ -1,15 +1,49 @@
 import json
+import re
 from datetime import datetime
+from urllib.parse import urlparse
 
 import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import requests
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, redirect, render_template, request, url_for, abort
+from werkzeug.exceptions import HTTPException
 from hiveengine.api import Api
 from hiveengine.market import Market
 
 app = Flask(__name__)
+
+
+# Error handlers
+@app.errorhandler(404)
+def page_not_found(e):
+    """Handle 404 errors by showing a custom page."""
+    return render_template("error_404.html"), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    """Handle 500 errors by showing a custom page."""
+    return render_template("error_500.html"), 500
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Handle any unexpected exceptions."""
+    # Pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+    
+    # Log the error for debugging
+    app.logger.error(f"Unhandled exception: {str(e)}")
+    
+    # Show generic error page
+    return render_template(
+        "error_generic.html", 
+        code="500 - Server Error", 
+        message="An unexpected error occurred. Please try again later."
+    ), 500
 
 
 # Custom Jinja2 filter for formatting timestamps
@@ -25,6 +59,31 @@ HE_HISTORY_API = "https://history.hive-engine.com"
 # Initialize hiveengine API
 he_api = Api(url="https://engine.thecrazygm.com/")
 he_market = Market()
+
+
+# Validate if URL is an image
+def is_valid_image_url(url):
+    """Check if a URL points to a valid image."""
+    if not url:
+        return False
+
+    # Basic URL validation
+    try:
+        result = urlparse(url)
+        if not all([result.scheme, result.netloc]):
+            return False
+
+        # Check for common image extensions
+        if not re.search(r"\.(jpg|jpeg|png|gif|svg|webp)$", url.lower()):
+            return False
+
+        # Check for potential script injection
+        if re.search(r"<script|javascript:|data:|onerror=", url.lower()):
+            return False
+
+        return True
+    except Exception:
+        return False
 
 
 # Get list of tokens
@@ -52,21 +111,28 @@ def get_token_info(token):
         ):
             try:
                 token_info["metadata"] = json.loads(token_info["metadata"])
+
+                # Validate icon URL if present
+                if token_info["metadata"] and "icon" in token_info["metadata"]:
+                    if not is_valid_image_url(token_info["metadata"]["icon"]):
+                        # Remove or replace invalid icon
+                        token_info["metadata"]["icon"] = None
+
             except json.JSONDecodeError:
                 # If metadata is not valid JSON, keep it as is
                 pass
 
         return token_info
-    except Exception as e:
-        print(f"Error getting token info: {e}")
+    except Exception:
         return None
 
 
 # Get token market data
-def get_market_data(symbol, days=7):
+def get_market_data(symbol, days=30):
     # Calculate timestamp in milliseconds
     timestamp_start = int((datetime.now().timestamp() - days * 24 * 60 * 60) * 1000)
     url = f"{HE_HISTORY_API}/marketHistory?symbol={symbol}&timestampStart={timestamp_start}"
+
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
@@ -92,14 +158,14 @@ def get_trade_history(symbol, limit=20):
         # Use the Hive-Engine API to get trade history
         trades = he_market.get_trades_history(symbol=symbol, limit=limit)
         return trades
-    except Exception as e:
-        print(f"Error fetching trade history for {symbol}: {e}")
+    except Exception:
         return []
 
 
 # Routes
 @app.route("/")
 def index():
+    """Display the homepage with a list of all tokens."""
     # Get all tokens
     tokens = get_tokens()
 
@@ -108,6 +174,13 @@ def index():
         if token and "metadata" in token and isinstance(token["metadata"], str):
             try:
                 token["metadata"] = json.loads(token["metadata"])
+
+                # Validate icon URL if present
+                if token["metadata"] and "icon" in token["metadata"]:
+                    if not is_valid_image_url(token["metadata"]["icon"]):
+                        # Remove invalid icon
+                        token["metadata"]["icon"] = None
+
             except json.JSONDecodeError:
                 # If metadata is not valid JSON, keep it as is
                 pass
@@ -115,13 +188,17 @@ def index():
     return render_template("index.html", tokens=tokens)
 
 
+@app.route("/market/<token>/all")
+@app.route("/market/<token>/<int:days>")
 @app.route("/market/<token>")
-def market(token):
+def market(token, days=30):
+    """Display market data for a specific token."""
     token_info = get_token_info(token)
     if not token_info:
-        return redirect(url_for("index"))
+        abort(404)
 
-    market_data = get_market_data(token)
+    # Get market data with the specified timeframe
+    market_data = get_market_data(token, days=days)
 
     # Get buy and sell book
     buy_book = he_market.get_buy_book(symbol=token)
@@ -132,49 +209,64 @@ def market(token):
 
     # Create candlestick chart
     if market_data:
-        df = pd.DataFrame(market_data)
-        # Convert timestamp to datetime (timestamp is in seconds, not milliseconds)
-        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+        try:
+            df = pd.DataFrame(market_data)
+            # Convert timestamp to datetime
+            # Check if timestamp appears to be in milliseconds
+            if df["timestamp"].max() > 1000000000000:  # Likely milliseconds if > 2001-09-09
+                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+            else:
+                df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
 
-        fig = go.Figure(
-            data=[
-                go.Candlestick(
-                    x=df["timestamp"],
-                    open=df["openPrice"],
-                    high=df["highestPrice"],
-                    low=df["lowestPrice"],
-                    close=df["closePrice"],
-                    increasing_line=dict(color="#26a69a", width=2),
-                    decreasing_line=dict(color="#ef5350", width=2),
-                    increasing_fillcolor="#26a69a",
-                    decreasing_fillcolor="#ef5350",
-                )
-            ]
-        )
+            # Check if we should show all data or filter by days
+            is_all_time = request.path.endswith("/all")
 
-        fig.update_layout(
-            title=f"{token}/SWAP.HIVE Market Data",
-            xaxis_title="Date",
-            yaxis_title="Price (HIVE)",
-            xaxis_rangeslider_visible=False,
-            margin=dict(l=50, r=50, t=50, b=50),
-            height=500,
-            hovermode="x unified",
-            xaxis=dict(
-                showgrid=True,
-                gridcolor="#e9ecef",
-                linecolor="#ced4da",
-                tickcolor="#ced4da",
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor="#e9ecef",
-                linecolor="#ced4da",
-                tickcolor="#ced4da",
-            ),
-        )
+            if not is_all_time:
+                # Filter the dataframe to only show the requested timespan
+                start_date = pd.Timestamp.now() - pd.Timedelta(days=days)
+                df = df[df["timestamp"] >= start_date]
 
-        chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+            fig = go.Figure(
+                data=[
+                    go.Candlestick(
+                        x=df["timestamp"],
+                        open=df["openPrice"],
+                        high=df["highestPrice"],
+                        low=df["lowestPrice"],
+                        close=df["closePrice"],
+                        increasing_line=dict(color="#26a69a", width=2),
+                        decreasing_line=dict(color="#ef5350", width=2),
+                        increasing_fillcolor="#26a69a",
+                        decreasing_fillcolor="#ef5350",
+                    )
+                ]
+            )
+
+            fig.update_layout(
+                title=f"{token}/SWAP.HIVE Market Data",
+                xaxis_title="Date",
+                yaxis_title="Price (HIVE)",
+                xaxis_rangeslider_visible=False,
+                margin=dict(l=50, r=50, t=50, b=50),
+                height=500,
+                hovermode="x unified",
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor="#e9ecef",
+                    linecolor="#ced4da",
+                    tickcolor="#ced4da",
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor="#e9ecef",
+                    linecolor="#ced4da",
+                    tickcolor="#ced4da",
+                ),
+            )
+
+            chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        except Exception:
+            chart_json = None
     else:
         chart_json = None
 
@@ -191,15 +283,22 @@ def market(token):
 
 @app.route("/view/<token>")
 def view(token):
+    """Display token information and richlist."""
     token_info = get_token_info(token)
     if not token_info:
-        return redirect(url_for("index"))
+        abort(404)
 
     richlist = get_richlist(token)
 
     return render_template(
         "view.html", token=token, token_info=token_info, richlist=richlist
     )
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve the favicon."""
+    return redirect(url_for('static', filename='images/favicon.ico'))
 
 
 if __name__ == "__main__":

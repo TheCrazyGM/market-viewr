@@ -13,27 +13,46 @@
     <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
 </head>
 
 <body>
     <!-- Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Market-Viewr</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-graph-up-arrow text-info me-2"></i>Market-Viewr
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">Token List</a>
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-list-ul me-1"></i> Token List
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://thecrazygm.com" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> TheCrazyGM
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://hive-engine.com" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Hive-Engine
+                        </a>
                     </li>
                 </ul>
                 <div class="d-flex">
-                    <button class="btn btn-outline-light" id="themeToggle">
-                        <i class="bi bi-sun-fill" id="lightIcon"></i>
-                        <i class="bi bi-moon-fill d-none" id="darkIcon"></i>
-                    </button>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="themeToggle">
+                        <label class="form-check-label text-light" for="themeToggle">
+                            <i class="bi bi-sun-fill" id="lightIcon"></i>
+                            <i class="bi bi-moon-fill d-none" id="darkIcon"></i>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -45,9 +64,11 @@
     </div>
 
     <!-- Footer -->
-    <footer class="footer py-3 bg-light fixed-bottom" id="appFooter">
+    <footer class="footer py-3 bg-light fixed-bottom shadow-lg" id="appFooter">
         <div class="container text-center">
-            <span class="text-muted">Made with ❤️ by thecrazygm</span>
+            <span class="text-muted">
+                <i class="bi bi-code-slash me-1"></i> with <i class="bi bi-heart-fill text-danger mx-1"></i> by thecrazygm
+            </span>
         </div>
     </footer>
 
@@ -64,40 +85,31 @@
 
             // Check for saved theme preference
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                htmlElement.setAttribute('data-bs-theme', savedTheme);
-                updateIcons(savedTheme);
-                updateFooter(savedTheme);
+            if (savedTheme === 'dark') {
+                htmlElement.setAttribute('data-bs-theme', 'dark');
+                themeToggle.checked = true;
+                updateIconsAndUI('dark');
             }
 
-            // Toggle theme on button click
-            themeToggle.addEventListener('click', function() {
-                const currentTheme = htmlElement.getAttribute('data-bs-theme');
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
+            // Toggle theme on switch change
+            themeToggle.addEventListener('change', function() {
+                const newTheme = this.checked ? 'dark' : 'light';
                 htmlElement.setAttribute('data-bs-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
-                updateIcons(newTheme);
-                updateFooter(newTheme);
+                updateIconsAndUI(newTheme);
             });
 
-            // Update icons based on current theme
-            function updateIcons(theme) {
+            // Update UI based on current theme
+            function updateIconsAndUI(theme) {
+                // Update icons
                 if (theme === 'dark') {
                     lightIcon.classList.add('d-none');
                     darkIcon.classList.remove('d-none');
-                } else {
-                    lightIcon.classList.remove('d-none');
-                    darkIcon.classList.add('d-none');
-                }
-            }
-
-            // Update footer based on current theme
-            function updateFooter(theme) {
-                if (theme === 'dark') {
                     appFooter.classList.remove('bg-light');
                     appFooter.classList.add('bg-dark');
                 } else {
+                    lightIcon.classList.remove('d-none');
+                    darkIcon.classList.add('d-none');
                     appFooter.classList.remove('bg-dark');
                     appFooter.classList.add('bg-light');
                 }
