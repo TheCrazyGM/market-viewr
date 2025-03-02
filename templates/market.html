@@ -203,15 +203,31 @@
 {% if chart_json %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const chartData = {{ chart_json | safe }};
+        const chartData = {
+            {
+                chart_json | safe
+            }
+        };
         const tokenSymbol = '{{ token }}';
-        
+
         // Determine current timespan
-        {% if request.path.endswith('/all') %}
-            let currentTimespan = 'all';
-        {% else %}
-            let currentTimespan = {{ request.view_args.get('days', 30) }};  // Get current timespan from URL or default to 30
-        {% endif %}
+        {
+            %
+            if request.path.endswith('/all') %
+        }
+        let currentTimespan = 'all';
+        {
+            %
+            else %
+        }
+        let currentTimespan = {
+            {
+                request.view_args.get('days', 30)
+            }
+        }; // Get current timespan from URL or default to 30
+        {
+            % endif %
+        }
 
         // Initial plot
         Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {
@@ -227,44 +243,44 @@
         // Update chart when theme changes
         document.getElementById('themeToggle').addEventListener('change', function() {
             const isDarkMode = this.checked;
-            
+
             if (isDarkMode) {
                 updateChartForDarkMode();
             } else {
                 updateChartForLightMode();
             }
         });
-        
+
         // Timespan button handlers
         document.getElementById('timespan-7d').addEventListener('click', function() {
             updateTimespan(7, this);
         });
-        
+
         document.getElementById('timespan-30d').addEventListener('click', function() {
             updateTimespan(30, this);
         });
-        
+
         document.getElementById('timespan-90d').addEventListener('click', function() {
             updateTimespan(90, this);
         });
-        
+
         document.getElementById('timespan-all').addEventListener('click', function() {
             updateTimespan('all', this);
         });
-        
+
         // Function to update timespan
         function updateTimespan(days, button) {
             if (currentTimespan === days) return; // No need to reload if same timespan
-            
+
             // Update button states
             document.querySelectorAll('.btn-group .btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             button.classList.add('active');
-            
+
             // Update current timespan
             currentTimespan = days;
-            
+
             // Redirect to the new timespan URL
             if (days === 'all') {
                 window.location.href = `/market/${tokenSymbol}/all`;

@@ -7,10 +7,10 @@ import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import requests
-from flask import Flask, redirect, render_template, request, url_for, abort
-from werkzeug.exceptions import HTTPException
+from flask import Flask, abort, redirect, render_template, request, url_for
 from hiveengine.api import Api
 from hiveengine.market import Market
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 
@@ -34,16 +34,19 @@ def handle_exception(e):
     # Pass through HTTP errors
     if isinstance(e, HTTPException):
         return e
-    
+
     # Log the error for debugging
     app.logger.error(f"Unhandled exception: {str(e)}")
-    
+
     # Show generic error page
-    return render_template(
-        "error_generic.html", 
-        code="500 - Server Error", 
-        message="An unexpected error occurred. Please try again later."
-    ), 500
+    return (
+        render_template(
+            "error_generic.html",
+            code="500 - Server Error",
+            message="An unexpected error occurred. Please try again later.",
+        ),
+        500,
+    )
 
 
 # Custom Jinja2 filter for formatting timestamps
@@ -213,7 +216,9 @@ def market(token, days=30):
             df = pd.DataFrame(market_data)
             # Convert timestamp to datetime
             # Check if timestamp appears to be in milliseconds
-            if df["timestamp"].max() > 1000000000000:  # Likely milliseconds if > 2001-09-09
+            if (
+                df["timestamp"].max() > 1000000000000
+            ):  # Likely milliseconds if > 2001-09-09
                 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
             else:
                 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
@@ -295,10 +300,10 @@ def view(token):
     )
 
 
-@app.route('/favicon.ico')
+@app.route("/favicon.ico")
 def favicon():
     """Serve the favicon."""
-    return redirect(url_for('static', filename='images/favicon.ico'))
+    return redirect(url_for("static", filename="images/favicon.ico"))
 
 
 if __name__ == "__main__":
