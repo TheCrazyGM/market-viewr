@@ -61,7 +61,7 @@ HE_HISTORY_API = "https://history.hive-engine.com"
 
 # Initialize hiveengine API
 he_api = Api(url="https://engine.thecrazygm.com/")
-he_market = Market()
+he_market = Market(api=he_api)
 
 
 # Validate if URL is an image
