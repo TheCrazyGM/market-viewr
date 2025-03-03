@@ -2,6 +2,12 @@
 
 {% block title %}Market-Viewr - {{ token }} Market{% endblock %}
 
+{% block head %}
+{{ super() }}
+<!-- Token info for JavaScript -->
+<meta name="token-symbol" content="{{ token }}">
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>{{ token }} Market Data</h1>
@@ -47,24 +53,14 @@
                 style="background-color: #1a73e8; color: white;">
                 <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Price Chart ({{ token }}/SWAP.HIVE)</h5>
                 <div class="btn-group btn-group-sm">
-                    <button id="timespan-7d"
-                        class="btn btn-light {% if request.view_args.get('days', 30) == 7 %}active{% endif %}">7d</button>
-                    <button id="timespan-30d"
-                        class="btn btn-light {% if request.view_args.get('days', 30) == 30 or (request.view_args.get('days') is none and not request.path.endswith('/all')) %}active{% endif %}">30d</button>
-                    <button id="timespan-90d"
-                        class="btn btn-light {% if request.view_args.get('days', 30) == 90 %}active{% endif %}">90d</button>
-                    <button id="timespan-all"
-                        class="btn btn-light {% if request.path.endswith('/all') %}active{% endif %}">All</button>
+                    <button data-timespan="7" class="timespan-btn btn btn-light {% if request.view_args.get('days', 30) == 7 %}active{% endif %}">7d</button>
+                    <button data-timespan="30" class="timespan-btn btn btn-light {% if request.view_args.get('days', 30) == 30 or (request.view_args.get('days') is none and not request.path.endswith('/all')) %}active{% endif %}">30d</button>
+                    <button data-timespan="90" class="timespan-btn btn btn-light {% if request.view_args.get('days', 30) == 90 %}active{% endif %}">90d</button>
+                    <button data-timespan="all" class="timespan-btn btn btn-light {% if request.path.endswith('/all') %}active{% endif %}">All</button>
                 </div>
             </div>
             <div class="card-body">
-                {% if chart_json %}
                 <div id="candlestick-chart" style="height: 500px;"></div>
-                {% else %}
-                <div class="alert alert-warning">
-                    No market data available for {{ token }}.
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -72,6 +68,43 @@
 
 <!-- Order Books -->
 <div class="row">
+    <!-- Account Filtering Controls -->
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-filter me-2"></i>Order Book Filters</h5>
+                <button class="btn btn-sm btn-light" id="toggle-filters"><i class="bi bi-chevron-down"></i></button>
+            </div>
+            <div class="card-body" id="filter-controls" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="account-filter" class="form-label">Filter out accounts:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="account-filter" placeholder="account1,account2,account3">
+                                <button class="btn btn-outline-primary" id="apply-filters">Apply</button>
+                                <button class="btn btn-outline-secondary" id="clear-filters">Clear</button>
+                            </div>
+                            <div class="form-text">Enter comma-separated account names to exclude</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Most active accounts:</label>
+                            <div id="active-accounts-list">
+                                <div class="d-flex justify-content-center">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Buy Book -->
     <div class="col-md-6 mb-4">
         <div class="card">
@@ -79,9 +112,8 @@
                 <h5 class="mb-0"><i class="bi bi-cart-plus me-2"></i>Buy Orders</h5>
             </div>
             <div class="card-body">
-                {% if buy_book %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table id="buy-book-table" class="table table-hover">
                         <thead>
                             <tr>
                                 <th>Order ID</th>
@@ -92,6 +124,7 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {% if buy_book %}
                             {% for order in buy_book %}
                             <tr>
                                 <td>{{ order._id }}</td>
@@ -108,12 +141,14 @@
                                 </td>
                             </tr>
                             {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">Loading buy orders...</td>
+                            </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
-                {% else %}
-                <div class="alert alert-info">No buy orders available.</div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -125,9 +160,8 @@
                 <h5 class="mb-0"><i class="bi bi-cart-dash me-2"></i>Sell Orders</h5>
             </div>
             <div class="card-body">
-                {% if sell_book %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table id="sell-book-table" class="table table-hover">
                         <thead>
                             <tr>
                                 <th>Order ID</th>
@@ -138,6 +172,7 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {% if sell_book %}
                             {% for order in sell_book %}
                             <tr>
                                 <td>{{ order._id }}</td>
@@ -154,12 +189,14 @@
                                 </td>
                             </tr>
                             {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">Loading sell orders...</td>
+                            </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
-                {% else %}
-                <div class="alert alert-info">No sell orders available.</div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -210,148 +247,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{% if chart_json %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-    const chartData = {{ chart_json | safe }};
-    const tokenSymbol = '{{ token }}';
-
-    // Determine current timespan
-    {% if request.path.endswith('/all') %}
-    let currentTimespan = 'all';
-    {% else %}
-    let currentTimespan = {{request.view_args.get('days', 30)}};
-    {% endif %}
-
-    // Initial plot
-    Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {
-        responsive: true
-    });
-
-    // Check initial theme and update chart
-    const initialDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-    if (initialDarkMode) {
-        updateChartForDarkMode();
-    }
-
-    // Update chart when theme changes
-    document.getElementById('themeToggle').addEventListener('change', function () {
-        const isDarkMode = this.checked;
-
-        if (isDarkMode) {
-            updateChartForDarkMode();
-        } else {
-            updateChartForLightMode();
-        }
-    });
-
-    // Timespan button handlers
-    document.getElementById('timespan-7d').addEventListener('click', function () {
-        updateTimespan(7, this);
-    });
-
-    document.getElementById('timespan-30d').addEventListener('click', function () {
-        updateTimespan(30, this);
-    });
-
-    document.getElementById('timespan-90d').addEventListener('click', function () {
-        updateTimespan(90, this);
-    });
-
-    document.getElementById('timespan-all').addEventListener('click', function () {
-        updateTimespan('all', this);
-    });
-
-    // Function to update timespan
-    function updateTimespan(days, button) {
-        if (currentTimespan === days) return; // No need to reload if same timespan
-
-        // Update button states
-        document.querySelectorAll('.btn-group .btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        button.classList.add('active');
-
-        // Update current timespan
-        currentTimespan = days;
-
-        // Redirect to the new timespan URL
-        if (days === 'all') {
-            window.location.href = `/market/${tokenSymbol}/all`;
-        } else {
-            window.location.href = `/market/${tokenSymbol}/${days}`;
-        }
-    }
-
-    function updateChartForDarkMode() {
-        // Update layout for dark mode
-        Plotly.relayout('candlestick-chart', {
-            'paper_bgcolor': '#212529',
-            'plot_bgcolor': '#2c3034',
-            'font.color': '#ffffff',
-            'xaxis.gridcolor': '#495057',
-            'xaxis.linecolor': '#6c757d',
-            'xaxis.tickcolor': '#6c757d',
-            'xaxis.tickfont.color': '#ffffff',
-            'yaxis.gridcolor': '#495057',
-            'yaxis.linecolor': '#6c757d',
-            'yaxis.tickcolor': '#6c757d',
-            'yaxis.tickfont.color': '#ffffff'
-        });
-
-        // Update candlestick colors for better visibility in dark mode
-        const gd = document.getElementById('candlestick-chart');
-        if (gd && gd.data) {
-            for (let i = 0; i < gd.data.length; i++) {
-                if (gd.data[i].type === 'candlestick') {
-                    Plotly.restyle('candlestick-chart', {
-                        'increasing.line.color': '#00e676',
-                        'increasing.fillcolor': '#00e676',
-                        'decreasing.line.color': '#ff5252',
-                        'decreasing.fillcolor': '#ff5252',
-                        'line.width': 3
-                    }, [i]);
-                }
-            }
-        }
-    }
-
-    function updateChartForLightMode() {
-        // Update layout for light mode
-        Plotly.relayout('candlestick-chart', {
-            'paper_bgcolor': '#ffffff',
-            'plot_bgcolor': '#ffffff',
-            'font.color': '#212529',
-            'xaxis.gridcolor': '#e9ecef',
-            'xaxis.linecolor': '#ced4da',
-            'xaxis.tickcolor': '#ced4da',
-            'xaxis.tickfont.color': '#212529',
-            'yaxis.gridcolor': '#e9ecef',
-            'yaxis.linecolor': '#ced4da',
-            'yaxis.tickcolor': '#ced4da',
-            'yaxis.tickfont.color': '#212529'
-        });
-
-        // Update candlestick colors for light mode
-        const gd = document.getElementById('candlestick-chart');
-        if (gd && gd.data) {
-            for (let i = 0; i < gd.data.length; i++) {
-                if (gd.data[i].type === 'candlestick') {
-                    Plotly.restyle('candlestick-chart', {
-                        'increasing.line.color': '#26a69a',
-                        'increasing.fillcolor': '#26a69a',
-                        'decreasing.line.color': '#ef5350',
-                        'decreasing.fillcolor': '#ef5350',
-                        'line.width': 2
-                    }, [i]);
-                }
-            }
-        }
-    }
-    });
-</script>
-{% endif %}
 {% endblock %}
