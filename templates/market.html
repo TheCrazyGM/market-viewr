@@ -33,8 +33,7 @@
                         token_info.metadata.url }}</a></p>
                 {% endif %}
                 {% if token_info.metadata.icon %}
-                <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid"
-                    style="max-height: 100px;">
+                <img src="{{ token_info.metadata.icon }}" alt="{{ token_info.symbol }} icon" class="img-fluid" style="max-height: 100px;">
                 {% endif %}
                 {% endif %}
             </div>
@@ -49,8 +48,7 @@
     <!-- Market Chart -->
     <div class="col-md-8 mb-4">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center"
-                style="background-color: #1a73e8; color: white;">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #1a73e8; color: white;">
                 <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Price Chart ({{ token }}/SWAP.HIVE)</h5>
                 <div class="btn-group btn-group-sm">
                     <button data-timespan="7" class="timespan-btn btn btn-light {% if request.view_args.get('days', 30) == 7 %}active{% endif %}">7d</button>
@@ -118,9 +116,9 @@
                             <tr>
                                 <th>Order ID</th>
                                 <th>Account</th>
-                                <th>Quantity</th>
-                                <th>Price (HIVE)</th>
-                                <th>Total (HIVE)</th>
+                                <th class="number-cell text-end">Quantity</th>
+                                <th class="number-cell text-end">Total (HIVE)</th>
+                                <th class="number-cell text-end price-column">Price (HIVE)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -129,16 +127,14 @@
                             <tr>
                                 <td>{{ order._id }}</td>
                                 <td>{{ order.account }}</td>
-                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) |
-                                    format(',.8f') }}</td>
-                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f')
-                                    }}</td>
-                                <td>
+                                <td class="number-cell text-end">{{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}</td>
+                                <td class="number-cell text-end">
                                     {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
                                     {% set price = order.price | float if order.price is not none else 0 %}
                                     {% set total = quantity * price %}
                                     {{ '%.8f' | format(total) }}
                                 </td>
+                                <td class="text-success fw-bold number-cell text-end price-column">{{ order.price if order.price is string else (order.price | float) | format(',.8f') }}</td>
                             </tr>
                             {% endfor %}
                             {% else %}
@@ -164,29 +160,25 @@
                     <table id="sell-book-table" class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Order ID</th>
+                                <th class="number-cell text-end price-column">Price (HIVE)</th>
+                                <th class="number-cell text-end">Total (HIVE)</th>
+                                <th class="number-cell text-end">Quantity</th>
                                 <th>Account</th>
-                                <th>Quantity</th>
-                                <th>Price (HIVE)</th>
-                                <th>Total (HIVE)</th>
+                                <th>Order ID</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if sell_book %}
                             {% for order in sell_book %}
                             <tr>
-                                <td>{{ order._id }}</td>
+                                {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
+                                {% set price = order.price | float if order.price is not none else 0 %}
+                                {% set total = quantity * price %}
+                                <td class="text-danger fw-bold number-cell text-end price-column">{{ order.price if order.price is string else (order.price | float) | format(',.8f') }}</td>
+                                <td class="number-cell text-end">{{ '%.8f' | format(total) }}</td>
+                                <td class="number-cell text-end">{{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}</td>
                                 <td>{{ order.account }}</td>
-                                <td>{{ order.quantity if order.quantity is string else (order.quantity | float) |
-                                    format(',.8f') }}</td>
-                                <td>{{ order.price if order.price is string else (order.price | float) | format(',.8f')
-                                    }}</td>
-                                <td>
-                                    {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
-                                    {% set price = order.price | float if order.price is not none else 0 %}
-                                    {% set total = quantity * price %}
-                                    {{ '%.8f' | format(total) }}
-                                </td>
+                                <td>{{ order._id }}</td>
                             </tr>
                             {% endfor %}
                             {% else %}
@@ -212,29 +204,28 @@
             <div class="card-body">
                 {% if trade_history %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="trade-history-table">
                         <thead>
                             <tr>
                                 <th>Date/Time</th>
                                 <th>Type</th>
                                 <th>Account</th>
-                                <th>Quantity</th>
-                                <th>Price (HIVE)</th>
-                                <th>Volume (HIVE)</th>
+                                <th class="text-end">Quantity</th>
+                                <th class="text-end">Price (HIVE)</th>
+                                <th class="text-end">Volume (HIVE)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for trade in trade_history %}
                             <tr>
                                 <td>{{ trade.timestamp | int | timestamp_to_date }}</td>
-                                <td
-                                    class="{% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                <td class="{% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
                                     {{ trade.type | upper }}
                                 </td>
                                 <td>{{ trade.buyer if trade.type == 'buy' else trade.seller }}</td>
-                                <td>{{ trade.quantity }}</td>
-                                <td>{{ trade.price }}</td>
-                                <td>{{ trade.volume }}</td>
+                                <td class="number-cell text-end">{{ trade.quantity }}</td>
+                                <td class="number-cell text-end">{{ trade.price }}</td>
+                                <td class="number-cell text-end">{{ trade.volume }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

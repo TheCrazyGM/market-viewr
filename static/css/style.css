@@ -150,3 +150,84 @@ body {
     background-color: #a7acb1;
     border-color: #a7acb1;
 }
+
+/* Order Book Table Styles */
+#buy-book-table,
+#sell-book-table {
+    font-size: 0.85rem;
+}
+
+#buy-book-table td,
+#sell-book-table td {
+    padding: 0.25rem 0.5rem !important;
+    white-space: nowrap !important;
+}
+
+#buy-book-table th,
+#sell-book-table th {
+    padding: 0.5rem !important;
+    white-space: nowrap !important;
+}
+
+/* Ensure numbers align properly */
+.number-cell {
+    text-align: right !important;
+    font-family: monospace !important;
+}
+
+/* Make price columns stand out */
+.price-column {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Dark mode adjustments for price columns */
+[data-bs-theme="dark"] .price-column {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Sort indicators for table headers */
+.sorted-asc::after {
+    content: " ↑";
+    opacity: 0.7;
+}
+
+.sorted-desc::after {
+    content: " ↓";
+    opacity: 0.7;
+}
+
+/* Force column widths for order book tables */
+#buy-book-table th:nth-child(1),
+#buy-book-table td:nth-child(1),
+#sell-book-table th:nth-child(5),
+#sell-book-table td:nth-child(5) {
+    width: 15% !important;
+}
+
+#buy-book-table th:nth-child(2),
+#buy-book-table td:nth-child(2),
+#sell-book-table th:nth-child(4),
+#sell-book-table td:nth-child(4) {
+    width: 20% !important;
+}
+
+#buy-book-table th:nth-child(3),
+#buy-book-table td:nth-child(3),
+#sell-book-table th:nth-child(3),
+#sell-book-table td:nth-child(3) {
+    width: 20% !important;
+}
+
+#buy-book-table th:nth-child(4),
+#buy-book-table td:nth-child(4),
+#sell-book-table th:nth-child(2),
+#sell-book-table td:nth-child(2) {
+    width: 20% !important;
+}
+
+#buy-book-table th:nth-child(5),
+#buy-book-table td:nth-child(5),
+#sell-book-table th:nth-child(1),
+#sell-book-table td:nth-child(1) {
+    width: 25% !important;
+}

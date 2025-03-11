@@ -20,9 +20,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make tables sortable
     const tables = document.querySelectorAll('.table');
     tables.forEach(table => {
+        // Skip order book tables
+        if (table.id === 'buy-book-table' || table.id === 'sell-book-table') {
+            return;
+        }
+
         const headers = table.querySelectorAll('th');
         headers.forEach((header, index) => {
-            header.addEventListener('click', () => {
+            header.addEventListener('click', function() {
                 sortTable(table, index);
             });
             header.style.cursor = 'pointer';
@@ -30,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
             header.setAttribute('title', 'Click to sort');
         });
     });
-    
+
     // Initialize market page when needed
     if (document.getElementById('candlestick-chart')) {
         initMarketPage();
@@ -38,32 +43,62 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to sort tables
-function sortTable(table, column) {
+function sortTable(table, column, forcedDirection = null) {
     const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const isNumeric = rows.length > 0 && !isNaN(parseFloat(rows[0].cells[column].textContent));
-    const direction = table.getAttribute('data-sort-direction') === 'asc' ? -1 : 1;
+
+    // Use forced direction if provided, otherwise toggle
+    let direction;
+    if (forcedDirection) {
+        direction = forcedDirection === 'asc' ? 1 : -1;
+    } else {
+        direction = table.getAttribute('data-sort-direction') === 'asc' ? -1 : 1;
+    }
 
     // Sort the rows
     rows.sort((a, b) => {
-        let aValue = a.cells[column].textContent.trim();
-        let bValue = b.cells[column].textContent.trim();
-
-        if (isNumeric) {
-            // Extract numbers only
-            aValue = parseFloat(aValue.replace(/[^0-9.-]+/g, ''));
-            bValue = parseFloat(bValue.replace(/[^0-9.-]+/g, ''));
-            return direction * (aValue - bValue);
-        } else {
-            return direction * aValue.localeCompare(bValue);
+        // Skip rows with colspans (like 'No orders available')
+        if (a.querySelector('td[colspan]') || b.querySelector('td[colspan]')) {
+            return 0;
         }
+
+        const cellA = a.querySelectorAll('td')[column];
+        const cellB = b.querySelectorAll('td')[column];
+
+        if (!cellA || !cellB) return 0;
+
+        let valueA = cellA.textContent.trim();
+        let valueB = cellB.textContent.trim();
+
+        // Check if the values are numbers
+        const numA = parseFloat(valueA.replace(/,/g, ''));
+        const numB = parseFloat(valueB.replace(/,/g, ''));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return direction * (numA - numB);
+        }
+
+        // Otherwise sort as strings
+        return direction * valueA.localeCompare(valueB);
     });
 
     // Update the table
     const tbody = table.querySelector('tbody');
     rows.forEach(row => tbody.appendChild(row));
 
-    // Toggle sort direction
+    // Set the direction attribute
     table.setAttribute('data-sort-direction', direction === 1 ? 'asc' : 'desc');
+
+    // Update sort indicators
+    const headers = table.querySelectorAll('th');
+    headers.forEach((header, index) => {
+        // Remove any existing indicators
+        header.classList.remove('sorted-asc', 'sorted-desc');
+
+        // Add indicator to the sorted column
+        if (index === column) {
+            header.classList.add(direction === 1 ? 'sorted-asc' : 'sorted-desc');
+        }
+    });
 }
 
 // Market page specific functions
@@ -72,7 +107,7 @@ function initMarketPage() {
     // Get token symbol from meta tag or extract from URL
     const tokenMetaTag = document.querySelector('meta[name="token-symbol"]');
     let tokenSymbol;
-    
+
     if (tokenMetaTag) {
         tokenSymbol = tokenMetaTag.getAttribute('content');
     } else {
@@ -86,27 +121,27 @@ function initMarketPage() {
             return; // Exit if we can't determine the token
         }
     }
-    
+
     let currentTimespan = '30'; // Default to 30 days
-    
+
     // Check for active timespan from buttons
     const activeTimespanButton = document.querySelector('.timespan-btn.active');
     if (activeTimespanButton) {
         currentTimespan = activeTimespanButton.getAttribute('data-timespan');
     }
-    
+
     // Initialize chart
     loadCandlestickChart(tokenSymbol, currentTimespan);
-    
+
     // Load full order book data
     loadOrderBook(tokenSymbol);
-    
+
     // Set up event listeners for timespan buttons
     setupTimespanButtons(tokenSymbol);
-    
+
     // Set up filter controls for order book
     setupFilterControls(tokenSymbol);
-    
+
     // Set up theme toggle listener for chart
     setupThemeToggle();
 }
@@ -125,7 +160,7 @@ function loadCandlestickChart(token, timeframe) {
             Plotly.newPlot('candlestick-chart', chartData.data, chartData.layout, {
                 responsive: true
             });
-            
+
             // Check theme and update chart
             const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
             if (isDarkMode) {
@@ -153,7 +188,7 @@ function loadOrderBook(token, excludeList = []) {
     if (excludeList && excludeList.length > 0) {
         url += `?exclude=${excludeList.join(',')}`;
     }
-    
+
     fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -165,7 +200,10 @@ function loadOrderBook(token, excludeList = []) {
             // Update buy and sell book tables with complete data
             updateOrderBook(data.buy_book, 'buy-book-table');
             updateOrderBook(data.sell_book, 'sell-book-table');
-            
+
+            // Ensure tables maintain their formatting
+            ensureTableFormatting();
+
             // Update most active accounts list
             if (data.most_active_accounts) {
                 updateActiveAccountsList(data.most_active_accounts, excludeList);
@@ -176,35 +214,80 @@ function loadOrderBook(token, excludeList = []) {
         });
 }
 
+// Ensure tables maintain their formatting
+function ensureTableFormatting() {
+    // Format buy book table
+    document.querySelectorAll('#buy-book-table td:nth-child(3), #buy-book-table td:nth-child(4), #buy-book-table td:nth-child(5)').forEach(cell => {
+        cell.classList.add('number-cell', 'text-end');
+    });
+
+    // Format sell book table
+    document.querySelectorAll('#sell-book-table td:nth-child(1), #sell-book-table td:nth-child(2), #sell-book-table td:nth-child(3)').forEach(cell => {
+        cell.classList.add('number-cell', 'text-end');
+    });
+
+    // Make sure price columns have the right classes
+    document.querySelectorAll('#buy-book-table td:nth-child(5)').forEach(cell => {
+        cell.classList.add('price-column', 'text-success', 'fw-bold');
+    });
+
+    document.querySelectorAll('#sell-book-table td:nth-child(1)').forEach(cell => {
+        cell.classList.add('price-column', 'text-danger', 'fw-bold');
+    });
+
+    // Format trade history table
+    document.querySelectorAll('#trade-history-table td:nth-child(4), #trade-history-table td:nth-child(5), #trade-history-table td:nth-child(6)').forEach(cell => {
+        cell.classList.add('number-cell', 'text-end');
+    });
+
+    // Add sorting functionality to table headers if not already present
+    ['buy-book-table', 'sell-book-table', 'trade-history-table'].forEach(tableId => {
+        const table = document.getElementById(tableId);
+        if (table && !table.hasAttribute('data-sort-initialized')) {
+            table.setAttribute('data-sort-initialized', 'true');
+            table.setAttribute('data-sort-direction', 'asc');
+
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                header.style.cursor = 'pointer';
+                header.setAttribute('title', 'Click to sort');
+                header.addEventListener('click', function() {
+                    sortTable(table, index);
+                });
+            });
+        }
+    });
+}
+
 // Update the most active accounts list
 function updateActiveAccountsList(accounts, currentlyExcluded = []) {
     const container = document.getElementById('active-accounts-list');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     if (accounts && accounts.length > 0) {
         const ul = document.createElement('ul');
         ul.className = 'list-group';
-        
+
         accounts.forEach(accountData => {
             const li = document.createElement('li');
             li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
-            
+
             // Create account name with action buttons
             const accountSpan = document.createElement('span');
             accountSpan.textContent = accountData.account;
-            
+
             // Create order count badge
             const countBadge = document.createElement('span');
             countBadge.className = 'badge bg-primary rounded-pill';
             countBadge.textContent = accountData.count;
-            
+
             // Create filter button
             const filterBtn = document.createElement('button');
             filterBtn.className = 'btn btn-sm ms-2';
             filterBtn.setAttribute('title', 'Filter account');
-            
+
             // Check if account is already excluded
             const isExcluded = currentlyExcluded.includes(accountData.account);
             if (isExcluded) {
@@ -216,7 +299,7 @@ function updateActiveAccountsList(accounts, currentlyExcluded = []) {
                 filterBtn.innerHTML = '<i class="bi bi-dash-circle"></i>';
                 filterBtn.setAttribute('title', 'Exclude account');
             }
-            
+
             // Add event listener to filter button
             filterBtn.addEventListener('click', function() {
                 const token = getTokenFromPage();
@@ -229,28 +312,28 @@ function updateActiveAccountsList(accounts, currentlyExcluded = []) {
                         excludedAccounts.push(accountData.account);
                     }
                 }
-                
+
                 // Update filter input field
                 const filterInput = document.getElementById('account-filter');
                 if (filterInput) {
                     filterInput.value = excludedAccounts.join(',');
                 }
-                
+
                 // Reload order book with updated filters
                 loadOrderBook(token, excludedAccounts);
             });
-            
+
             // Create wrapper for badge and button
             const badgeWrapper = document.createElement('div');
             badgeWrapper.className = 'd-flex align-items-center';
             badgeWrapper.appendChild(countBadge);
             badgeWrapper.appendChild(filterBtn);
-            
+
             li.appendChild(accountSpan);
             li.appendChild(badgeWrapper);
             ul.appendChild(li);
         });
-        
+
         container.appendChild(ul);
     } else {
         container.innerHTML = '<div class="alert alert-info mt-2">No account data available</div>';
@@ -262,35 +345,35 @@ function setupFilterControls(token) {
     // Toggle filter panel
     const toggleBtn = document.getElementById('toggle-filters');
     const filterControls = document.getElementById('filter-controls');
-    
+
     if (toggleBtn && filterControls) {
         toggleBtn.addEventListener('click', function() {
             const isVisible = filterControls.style.display !== 'none';
             filterControls.style.display = isVisible ? 'none' : 'block';
-            toggleBtn.innerHTML = isVisible ? 
-                '<i class="bi bi-chevron-down"></i>' : 
+            toggleBtn.innerHTML = isVisible ?
+                '<i class="bi bi-chevron-down"></i>' :
                 '<i class="bi bi-chevron-up"></i>';
         });
     }
-    
+
     // Apply filters button
     const applyBtn = document.getElementById('apply-filters');
     const filterInput = document.getElementById('account-filter');
-    
+
     if (applyBtn && filterInput) {
         applyBtn.addEventListener('click', function() {
             const accounts = filterInput.value.split(',')
                 .map(acc => acc.trim())
                 .filter(acc => acc.length > 0);
-            
+
             excludedAccounts = accounts;
             loadOrderBook(token, accounts);
         });
     }
-    
+
     // Clear filters button
     const clearBtn = document.getElementById('clear-filters');
-    
+
     if (clearBtn && filterInput) {
         clearBtn.addEventListener('click', function() {
             filterInput.value = '';
@@ -306,14 +389,14 @@ function getTokenFromPage() {
     if (tokenMetaTag) {
         return tokenMetaTag.getAttribute('content');
     }
-    
+
     // Fallback: extract from URL
     const pathParts = window.location.pathname.split('/');
     const marketIndex = pathParts.indexOf('market');
     if (marketIndex !== -1 && pathParts.length > marketIndex + 1) {
         return pathParts[marketIndex + 1];
     }
-    
+
     return null;
 }
 
@@ -324,41 +407,67 @@ function updateOrderBook(orders, tableId) {
         console.error(`Table with ID "${tableId}" not found`);
         return;
     }
-    
+
     const tableBody = table.querySelector('tbody');
-    
+
     // If we can't find the tbody, log an error and return
     if (!tableBody) {
         console.error(`tbody not found in table with ID "${tableId}"`);
         return;
     }
-    
+
     // Clear existing rows first
     tableBody.innerHTML = '';
-    
+
     if (orders && orders.length > 0) {
         // Create rows for each order
         orders.forEach(order => {
             const quantity = parseFloat(order.quantity);
             const price = parseFloat(order.price);
             const total = quantity * price;
-            
+
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${order._id}</td>
-                <td>${order.account}</td>
-                <td>${quantity.toFixed(8)}</td>
-                <td>${price.toFixed(8)}</td>
-                <td>${total.toFixed(8)}</td>
-            `;
+
+            // Different layout for buy and sell tables
+            if (tableId === 'buy-book-table') {
+                row.innerHTML = `
+                    <td>${order._id}</td>
+                    <td>${order.account}</td>
+                    <td class="number-cell text-end">${quantity.toFixed(8)}</td>
+                    <td class="number-cell text-end">${total.toFixed(8)}</td>
+                    <td class="text-success fw-bold number-cell text-end price-column">${price.toFixed(8)}</td>
+                `;
+            } else if (tableId === 'sell-book-table') {
+                row.innerHTML = `
+                    <td class="text-danger fw-bold number-cell text-end price-column">${price.toFixed(8)}</td>
+                    <td class="number-cell text-end">${total.toFixed(8)}</td>
+                    <td class="number-cell text-end">${quantity.toFixed(8)}</td>
+                    <td>${order.account}</td>
+                    <td>${order._id}</td>
+                `;
+            }
+
             tableBody.appendChild(row);
         });
+
+        // Sort by price by default
+        if (tableId === 'buy-book-table') {
+            // Sort buy orders by price (descending) - column index 4
+            sortTable(table, 4, 'desc');
+        } else if (tableId === 'sell-book-table') {
+            // Sort sell orders by price (ascending) - column index 0
+            sortTable(table, 0, 'asc');
+        }
     } else {
         // Show no orders message
         const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="5" class="text-center">No orders available</td>';
+        const colSpan = table.querySelector('thead tr').children.length || 5;
+        row.innerHTML = `<td colspan="${colSpan}" class="text-center">No orders available</td>`;
         tableBody.appendChild(row);
     }
+
+    // Ensure consistent formatting
+    ensureTableFormatting();
 }
 
 // Set up event listeners for timespan buttons
@@ -366,16 +475,16 @@ function setupTimespanButtons(token) {
     document.querySelectorAll('.timespan-btn').forEach(button => {
         button.addEventListener('click', function() {
             const timespan = this.getAttribute('data-timespan');
-            
+
             // Don't reload if already on this timespan
             if (this.classList.contains('active')) return;
-            
+
             // Update button states
             document.querySelectorAll('.timespan-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             this.classList.add('active');
-            
+
             // Load chart with new timespan
             loadCandlestickChart(token, timespan);
         });
@@ -388,7 +497,7 @@ function setupThemeToggle() {
     if (themeToggle) {
         themeToggle.addEventListener('change', function() {
             const isDarkMode = this.checked;
-            
+
             if (isDarkMode) {
                 updateChartForDarkMode();
             } else {
@@ -402,7 +511,7 @@ function setupThemeToggle() {
 function updateChartForDarkMode() {
     const chartElement = document.getElementById('candlestick-chart');
     if (!chartElement) return;
-    
+
     // Update layout for dark mode
     Plotly.relayout('candlestick-chart', {
         'paper_bgcolor': '#212529',
@@ -439,7 +548,7 @@ function updateChartForDarkMode() {
 function updateChartForLightMode() {
     const chartElement = document.getElementById('candlestick-chart');
     if (!chartElement) return;
-    
+
     // Update layout for light mode
     Plotly.relayout('candlestick-chart', {
         'paper_bgcolor': '#ffffff',
