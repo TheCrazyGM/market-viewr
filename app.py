@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from datetime import datetime
 from urllib.parse import urlparse
@@ -13,6 +14,8 @@ from hiveengine.market import Market
 from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
+# Setup Logger
+app.logger = logging.getLogger(__name__)
 
 
 # Error handlers
@@ -89,9 +92,28 @@ def is_valid_image_url(url):
         return False
 
 
-# Get list of tokens
 def get_tokens():
-    tokens = he_api.find("tokens", "tokens")
+    """Get list of all tokens from Hive Engine with pagination."""
+    tokens = []
+    offset = 0
+    limit = 1000  # Maximum limit per request
+
+    while True:
+        # Fetch a batch of tokens
+        batch = he_api.find("tokens", "tokens", limit=limit, offset=offset)
+        if not batch:
+            break
+
+        tokens.extend(batch)
+
+        # If we got fewer tokens than the limit, we have reached the end
+        if len(batch) < limit:
+            break
+
+        # Move to the next batch
+        offset += limit
+
+    return tokens
     return tokens
 
 
@@ -415,18 +437,25 @@ def api_orderbook(token):
         return {"error": "Error retrieving order book"}, 500
 
 
-@app.route("/market/<token>/all")
-@app.route("/market/<token>/<int:days>")
 @app.route("/market/<token>")
-def market(token, days=30):
+def market(token):
     """Display market data for a specific token."""
     token_info = get_token_info(token)
     if not token_info:
         abort(404)
 
-    # Get initial buy and sell book for rendering - API will fetch complete books
-    buy_book = he_market.get_buy_book(symbol=token)
-    sell_book = he_market.get_sell_book(symbol=token)
+    # Get buy and sell book for rendering - API will fetch complete books
+    try:
+        buy_book = he_market.get_buy_book(symbol=token)
+    except Exception as e:
+        app.logger.error(f"Error getting buy book for {token}: {str(e)}")
+        buy_book = []
+
+    try:
+        sell_book = he_market.get_sell_book(symbol=token)
+    except Exception as e:
+        app.logger.error(f"Error getting sell book for {token}: {str(e)}")
+        sell_book = []
 
     # Get trade history
     trade_history = get_trade_history(token)
