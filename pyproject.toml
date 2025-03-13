@@ -18,6 +18,7 @@ dependencies = [
     "pandas",
     "plotly",
     "hiveengine",
+    "gunicorn>=23.0.0",
 ]
 requires-python = ">=3.13"
 
