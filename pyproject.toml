@@ -24,3 +24,6 @@ requires-python = ">=3.13"
 [project.urls]
 "Homepage" = "https://github.com/TheCrazyGM/market-viewr"
 "Bug Tracker" = "https://github.com/TheCrazyGM/market-viewr/issues"
+
+[tool.uv.sources]
+hiveengine = { git = "https://github.com/thecrazygm/hiveengine" }
