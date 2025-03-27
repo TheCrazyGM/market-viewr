@@ -114,7 +114,6 @@ def get_tokens():
         offset += limit
 
     return tokens
-    return tokens
 
 
 # Get token info
@@ -167,13 +166,33 @@ def get_market_data(symbol, days=30):
 
 # Get token richlist
 def get_richlist(symbol):
-    richlist = he_api.find(
-        "tokens",
-        "balances",
-        query={"symbol": symbol},
-        limit=100,
-        indexes=[{"index": "balance", "descending": True}],
-    )
+    richlist = []
+    offset = 0
+    limit = 1000  # Maximum limit per request
+
+    while True:
+        # Fetch a batch of token holders
+        batch = he_api.find(
+            "tokens",
+            "balances",
+            query={"symbol": symbol},
+            limit=limit,
+            offset=offset,
+            indexes=[{"index": "balance", "descending": True}],
+        )
+
+        if not batch:
+            break
+
+        richlist.extend(batch)
+
+        # If we got fewer holders than the limit, we have reached the end
+        if len(batch) < limit:
+            break
+
+        # Move to the next batch
+        offset += limit
+
     return richlist
 
 
