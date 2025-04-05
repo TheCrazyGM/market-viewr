@@ -231,3 +231,23 @@ body {
 #sell-book-table td:nth-child(1) {
     width: 25% !important;
 }
+
+/* Custom styling for trade history table */
+#trade-history-table {
+    font-size: 0.8125rem;
+    /* Even smaller font size */
+}
+
+#trade-history-table td,
+#trade-history-table th {
+    padding: 0.25rem 0.5rem;
+    /* More compact vertical padding */
+    line-height: 1.2;
+    /* Tighter line height */
+}
+
+/* Make the BUY/SELL indicators more compact */
+#trade-history-table .text-success,
+#trade-history-table .text-danger {
+    font-size: 0.8125rem;
+}

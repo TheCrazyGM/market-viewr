@@ -198,7 +198,7 @@
 <div class="row">
     <div class="col-12 mb-4">
         <div class="card">
-            <div class="card-header" style="background-color: #1a1d23; color: white;">
+            <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Trade History</h5>
             </div>
             <div class="card-body">
@@ -210,21 +210,25 @@
                                 <th>Date/Time</th>
                                 <th>Type</th>
                                 <th>Account</th>
-                                <th class="text-end">Quantity</th>
-                                <th class="text-end">Price (HIVE)</th>
-                                <th class="text-end">Volume (HIVE)</th>
+                                <th class="number-cell text-end">Quantity</th>
+                                <th class="number-cell text-end price-column">Price (HIVE)</th>
+                                <th class="number-cell text-end">Volume (HIVE)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for trade in trade_history %}
                             <tr>
                                 <td>{{ trade.timestamp | int | timestamp_to_date }}</td>
-                                <td class="{% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
-                                    {{ trade.type | upper }}
-                                </td>
+                                {% if trade.type == 'buy' %}
+                                <td class="text-success fw-bold">BUY</td>
+                                {% else %}
+                                <td class="text-danger fw-bold">SELL</td>
+                                {% endif %}
                                 <td>{{ trade.buyer if trade.type == 'buy' else trade.seller }}</td>
                                 <td class="number-cell text-end">{{ trade.quantity }}</td>
-                                <td class="number-cell text-end">{{ trade.price }}</td>
+                                <td class="number-cell text-end price-column {% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {{ trade.price }}
+                                </td>
                                 <td class="number-cell text-end">{{ trade.volume }}</td>
                             </tr>
                             {% endfor %}

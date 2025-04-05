@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import time
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -197,12 +198,58 @@ def get_richlist(symbol):
 
 
 # Get token market history
-def get_trade_history(symbol, limit=20):
+def get_trade_history(symbol, limit=100, days=30):
     try:
-        # Use the Hive-Engine API to get trade history
-        trades = he_market.get_trades_history(symbol=symbol, limit=limit)
-        return trades
-    except Exception:
+        all_trades = []
+        batch_size = 1000  # Maximum batch size for each API call
+        total_needed = limit  # How many trades we want to return in total
+        
+        # If days is specified, we'll try to get trades from the last X days
+        if days > 0:
+            # Calculate how many trades we might need to fetch to cover the time period
+            # This is an estimate - we'll keep fetching until we have enough or hit the time limit
+            total_needed = batch_size * 10  # Start with a reasonable number
+        
+        # We'll make multiple API calls with pagination to get more history
+        offset = 0
+        oldest_timestamp = None
+        
+        # Get current timestamp for comparison (to filter by days)
+        current_time = time.time()
+        cutoff_time = current_time - (days * 24 * 60 * 60)  # X days ago in seconds
+        
+        while len(all_trades) < total_needed:
+            # Get a batch of trades
+            batch = he_market.get_trades_history(symbol=symbol, limit=batch_size, offset=offset)
+            
+            # If no more trades, break the loop
+            if not batch:
+                break
+                
+            # Process this batch
+            for trade in batch:
+                # If we're filtering by days and this trade is older than our cutoff, stop
+                if days > 0 and int(trade.get('timestamp', 0)) < cutoff_time:
+                    oldest_timestamp = trade.get('timestamp')
+                    break
+                    
+                all_trades.append(trade)
+            
+            # If we found a trade older than our cutoff, stop fetching
+            if oldest_timestamp and int(oldest_timestamp) < cutoff_time:
+                break
+                
+            # Move to the next batch
+            offset += batch_size
+            
+            # Safety check - if we've made too many API calls, stop
+            if offset > batch_size * 10:
+                break
+        
+        # Return only the requested number of trades
+        return all_trades[:limit]
+    except Exception as e:
+        print(f"Error fetching trade history: {e}")
         return []
 
 
@@ -509,8 +556,8 @@ def market(token):
         app.logger.error(f"Error getting sell book for {token}: {str(e)}")
         sell_book = []
 
-    # Get trade history
-    trade_history = get_trade_history(token)
+    # Get trade history for the last 30 days, with a larger limit
+    trade_history = get_trade_history(token, limit=500, days=30)
 
     return render_template(
         "market.html",
