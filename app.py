@@ -9,8 +9,8 @@ import plotly
 import plotly.graph_objects as go
 import requests
 from flask import Flask, abort, redirect, render_template, request, url_for
-from hiveengine.api import Api
-from hiveengine.market import Market
+from nectarengine.api import Api
+from nectarengine.market import Market
 from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
@@ -208,13 +208,17 @@ def get_trade_history(symbol, limit=20):
 
 # Routes
 @app.route("/")
-def index():
-    """Display the homepage with a list of all tokens."""
+@app.route("/page/<int:page>")
+def index(page=1):
+    """Display the homepage with a list of all tokens with pagination and search."""
+    # Get search query from request args
+    search_query = request.args.get("q", "").lower()
+
     # Get all tokens
-    tokens = get_tokens()
+    all_tokens = get_tokens()
 
     # Parse metadata for each token
-    for token in tokens:
+    for token in all_tokens:
         if token and "metadata" in token and isinstance(token["metadata"], str):
             try:
                 token["metadata"] = json.loads(token["metadata"])
@@ -229,7 +233,36 @@ def index():
                 # If metadata is not valid JSON, keep it as is
                 pass
 
-    return render_template("index.html", tokens=tokens)
+    # Filter tokens if search query is provided
+    if search_query:
+        filtered_tokens = []
+        for token in all_tokens:
+            # Search in symbol and name
+            if (
+                search_query in token.get("symbol", "").lower()
+                or search_query in token.get("name", "").lower()
+            ):
+                filtered_tokens.append(token)
+        all_tokens = filtered_tokens
+
+    # Pagination logic
+    per_page = 100
+    total = len(all_tokens)
+    offset = (page - 1) * per_page
+    tokens = all_tokens[offset : offset + per_page]
+
+    # Calculate total pages
+    total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+    return render_template(
+        "index.html",
+        tokens=tokens,
+        page=page,
+        per_page=per_page,
+        total=total,
+        total_pages=total_pages,
+        search_query=search_query,
+    )
 
 
 @app.route("/api/chart/<token>/<timeframe>")

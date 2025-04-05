@@ -21,30 +21,6 @@ wheels = [
 ]
 
 [[package]]
-name = "beem"
-version = "0.24.26"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "appdirs" },
-    { name = "asn1crypto" },
-    { name = "click" },
-    { name = "click-shell" },
-    { name = "diff-match-patch" },
-    { name = "ecdsa" },
-    { name = "prettytable" },
-    { name = "pycryptodomex" },
-    { name = "pytz" },
-    { name = "requests" },
-    { name = "ruamel-yaml" },
-    { name = "scrypt" },
-    { name = "websocket-client" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/6d/38e54c7fc84fe903858100bef181788072921fa0a5f34ec1fbf2a46a29c1/beem-0.24.26.tar.gz", hash = "sha256:7bca00fc64e14854cd362ffa9e901537260da1da7ecfe962be06c7435cd11af5", size = 573364 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/e0/9b50176ea61dc09a21044b01873b04aeb4ca3312751cc9b1307342d4437e/beem-0.24.26-py2.py3-none-any.whl", hash = "sha256:5059eeb5feb694bf8b5fac07e9db483a281af82d3291b90b8270f2f860536855", size = 407660 },
-]
-
-[[package]]
 name = "blinker"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -167,13 +143,22 @@ wheels = [
 ]
 
 [[package]]
-name = "hiveengine"
-version = "0.2.3"
-source = { git = "https://github.com/thecrazygm/hiveengine#b4fd50f676d53aaec77023233a6b4be80ddb68a9" }
+name = "hive-nectar"
+version = "0.0.2"
+source = { git = "https://github.com/thecrazygm/hive-nectar#fbaf1a9b718cfd3e3f62e385128ee9aca27acc8f" }
 dependencies = [
-    { name = "beem" },
+    { name = "appdirs" },
+    { name = "asn1crypto" },
+    { name = "click" },
+    { name = "click-shell" },
+    { name = "diff-match-patch" },
+    { name = "ecdsa" },
+    { name = "prettytable" },
+    { name = "pycryptodomex" },
     { name = "requests" },
-    { name = "six" },
+    { name = "ruamel-yaml" },
+    { name = "scrypt" },
+    { name = "websocket-client" },
 ]
 
 [[package]]
@@ -213,7 +198,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "flask" },
     { name = "gunicorn" },
-    { name = "hiveengine" },
+    { name = "nectarengine" },
     { name = "pandas" },
     { name = "plotly" },
     { name = "requests" },
@@ -223,7 +208,7 @@ dependencies = [
 requires-dist = [
     { name = "flask" },
     { name = "gunicorn", specifier = ">=23.0.0" },
-    { name = "hiveengine", git = "https://github.com/thecrazygm/hiveengine" },
+    { name = "nectarengine", git = "https://github.com/thecrazygm/nectarengine" },
     { name = "pandas" },
     { name = "plotly" },
     { name = "requests" },
@@ -264,6 +249,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c4/98/be6d35e8869ab9403fa25dc3458e7af6ce36dac2873c74c7274a59b21958/narwhals-1.30.0.tar.gz", hash = "sha256:0c50cc67a5404da501302882838ec17dce51703d22cd8ad89162d6f60ea0bb19", size = 253461 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/97/bde1e4cf1e0fe0d4c70f750b57d152c0ecb04bb35de7aa7950a5756a71d6/narwhals-1.30.0-py3-none-any.whl", hash = "sha256:443aa0a1abfae89bc65a6b888a7e310a03d1818bfb2ccd61c150199a5f954c17", size = 313611 },
+]
+
+[[package]]
+name = "nectarengine"
+version = "0.0.5"
+source = { git = "https://github.com/thecrazygm/nectarengine#f7d65062405a43d978d724013b34b250781fb314" }
+dependencies = [
+    { name = "hive-nectar" },
+    { name = "requests" },
 ]
 
 [[package]]

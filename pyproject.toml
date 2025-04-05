@@ -17,8 +17,8 @@ dependencies = [
     "requests",
     "pandas",
     "plotly",
-    "hiveengine",
     "gunicorn>=23.0.0",
+    "nectarengine",
 ]
 requires-python = ">=3.13"
 
@@ -27,4 +27,4 @@ requires-python = ">=3.13"
 "Bug Tracker" = "https://github.com/TheCrazyGM/market-viewr/issues"
 
 [tool.uv.sources]
-hiveengine = { git = "https://github.com/thecrazygm/hiveengine" }
+nectarengine = { git = "https://github.com/thecrazygm/nectarengine" }
