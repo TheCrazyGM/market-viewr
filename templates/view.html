@@ -61,6 +61,8 @@
                                 <th>#</th>
                                 <th>Account</th>
                                 <th>Balance</th>
+                                <th>Staked</th>
+                                <th>Total</th>
                                 <th>% of Total</th>
                                 <th>% of Circulating</th>
                             </tr>
@@ -70,12 +72,16 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>{{ holder.account }}</td>
-                                <td>{{ holder.balance if holder.balance is string else (holder.balance | float) | format(',.8f') }}</td>
+                                <td>{% if holder.balance is string %}{{ holder.balance }}{% else %}{{ '%.8f' | format(holder.balance | float) }}{% endif %}</td>
+                                <td>{% if holder.stake is defined and holder.stake is not none %}{% if holder.stake is string %}{{ holder.stake }}{% else %}{{ '%.8f' | format(holder.stake | float) }}{% endif %}{% else %}0.00000000{% endif %}</td>
+                                {% set balance = holder.balance | float if holder.balance is not none else 0 %}
+                                {% set stake = holder.stake | float if holder.stake is defined and holder.stake is not none else 0 %}
+                                {% set total_balance = balance + stake %}
+                                <td>{{ '%.8f' | format(total_balance) }}</td>
                                 <td>
-                                    {% set balance = holder.balance | float if holder.balance is not none else 0 %}
                                     {% set total_supply = token_info.supply | float if token_info.supply is not none else 1 %}
                                     {% set circ_supply = token_info.circulatingSupply | float if token_info.circulatingSupply is not none else 1 %}
-                                    {% set total_percentage = (balance / total_supply) * 100 %}
+                                    {% set total_percentage = (total_balance / total_supply) * 100 %}
                                     {{ '%.2f' | format(total_percentage) }}%
                                     <div class="progress" style="height: 5px;">
                                         <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ total_percentage }}%;" aria-valuenow="{{ total_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
@@ -83,7 +89,7 @@
                                 </td>
                                 <td>
                                     {% if circ_supply > 0 %}
-                                        {% set circ_percentage = (balance / circ_supply) * 100 %}
+                                        {% set circ_percentage = (total_balance / circ_supply) * 100 %}
                                         {{ '%.2f' | format(circ_percentage) }}%
                                         <div class="progress" style="height: 5px;">
                                             <div class="progress-bar bg-info" role="progressbar" style="width: {{ circ_percentage }}%;" aria-valuenow="{{ circ_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
