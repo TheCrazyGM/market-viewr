@@ -20,6 +20,9 @@
             <div class="card-body">
                 <p><strong>Total Supply:</strong> {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | format(',.8f') }}</p>
                 <p><strong>Circulating Supply:</strong> {{ token_info.circulatingSupply if token_info.circulatingSupply is string else (token_info.circulatingSupply | float) | format(',.8f') }}</p>
+                {% if burned_balance > 0 %}
+                    <p><strong>Burned Tokens:</strong> {{ "%.8f" % burned_balance }} ({{ "%.2f" % burned_percentage }}% of total)</p>
+                {% endif %}
                 <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
 
                 {% if token_info.metadata %}

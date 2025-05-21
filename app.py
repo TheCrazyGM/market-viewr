@@ -168,6 +168,7 @@ def get_market_data(symbol, days=30):
 # Get token richlist
 def get_richlist(symbol):
     richlist = []
+    burned_balance = 0.0
     offset = 0
     limit = 1000  # Maximum limit per request
 
@@ -185,10 +186,15 @@ def get_richlist(symbol):
         if not batch:
             break
 
-        # Filter out @null account
-        filtered_batch = [holder for holder in batch if holder.get('account') != 'null']
-        richlist.extend(filtered_batch)
-
+        # Process batch to find burned tokens and filter null account
+        for holder in batch:
+            if holder.get("account") == "null":
+                try:
+                    burned_balance = float(holder.get("balance", 0))
+                except (ValueError, TypeError):
+                    burned_balance = 0.0
+            else:
+                richlist.append(holder)
 
         # If we got fewer holders than the limit, we have reached the end
         if len(batch) < limit:
@@ -197,7 +203,7 @@ def get_richlist(symbol):
         # Move to the next batch
         offset += limit
 
-    return richlist
+    return richlist, burned_balance
 
 
 # Get token market history
@@ -581,10 +587,25 @@ def view(token):
     if not token_info:
         abort(404)
 
-    richlist = get_richlist(token)
+    richlist, burned_balance = get_richlist(token)
+
+    # Calculate burned percentage if supply is available
+    burned_percentage = 0.0
+    if token_info.get("supply"):
+        try:
+            supply = float(token_info["supply"])
+            if supply > 0:
+                burned_percentage = (burned_balance / supply) * 100
+        except (ValueError, TypeError):
+            pass
 
     return render_template(
-        "view.html", token=token, token_info=token_info, richlist=richlist
+        "view.html",
+        token=token,
+        token_info=token_info,
+        richlist=richlist,
+        burned_balance=burned_balance,
+        burned_percentage=burned_percentage,
     )
 
 
