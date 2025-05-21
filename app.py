@@ -185,7 +185,10 @@ def get_richlist(symbol):
         if not batch:
             break
 
-        richlist.extend(batch)
+        # Filter out @null account
+        filtered_batch = [holder for holder in batch if holder.get('account') != 'null']
+        richlist.extend(filtered_batch)
+
 
         # If we got fewer holders than the limit, we have reached the end
         if len(batch) < limit:

@@ -58,7 +58,8 @@
                                 <th>#</th>
                                 <th>Account</th>
                                 <th>Balance</th>
-                                <th>% of Supply</th>
+                                <th>% of Total</th>
+                                <th>% of Circulating</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -69,12 +70,24 @@
                                 <td>{{ holder.balance if holder.balance is string else (holder.balance | float) | format(',.8f') }}</td>
                                 <td>
                                     {% set balance = holder.balance | float if holder.balance is not none else 0 %}
-                                    {% set supply = token_info.supply | float if token_info.supply is not none else 1 %}
-                                    {% set percentage = (balance / supply) * 100 %}
-                                    {{ '%.2f' | format(percentage) }}%
+                                    {% set total_supply = token_info.supply | float if token_info.supply is not none else 1 %}
+                                    {% set circ_supply = token_info.circulatingSupply | float if token_info.circulatingSupply is not none else 1 %}
+                                    {% set total_percentage = (balance / total_supply) * 100 %}
+                                    {{ '%.2f' | format(total_percentage) }}%
                                     <div class="progress" style="height: 5px;">
-                                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ total_percentage }}%;" aria-valuenow="{{ total_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
+                                </td>
+                                <td>
+                                    {% if circ_supply > 0 %}
+                                        {% set circ_percentage = (balance / circ_supply) * 100 %}
+                                        {{ '%.2f' | format(circ_percentage) }}%
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ circ_percentage }}%;" aria-valuenow="{{ circ_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
