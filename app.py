@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import string
 import time
 from datetime import datetime
 from urllib.parse import urlparse
@@ -169,40 +170,45 @@ def get_market_data(symbol, days=30):
 def get_richlist(symbol):
     richlist = []
     burned_balance = 0.0
-    offset = 0
-    limit = 1000  # Maximum limit per request
+    page_size = 1000  # Use the maximum per-request limit
+    prefixes = list(string.ascii_lowercase) + list(string.digits) + ["_"]
+    seen_accounts = set()
 
-    while True:
-        # Fetch a batch of token holders
-        batch = he_api.find(
-            "tokens",
-            "balances",
-            query={"symbol": symbol},
-            limit=limit,
-            offset=offset,
-            indexes=[{"index": "balance", "descending": True}],
-        )
+    for prefix in prefixes:
+        offset = 0
+        while True:
+            batch = he_api.find(
+                "tokens",
+                "balances",
+                query={"symbol": symbol, "account": {"$regex": f"^{prefix}"}},
+                limit=page_size,
+                offset=offset,
+                indexes=[{"index": "balance", "descending": True}],
+            )
+            if not batch:
+                break
+            for holder in batch:
+                acct = holder.get("account")
+                if acct == "null":
+                    try:
+                        burned_balance = float(holder.get("balance", 0))
+                    except (ValueError, TypeError):
+                        burned_balance = 0.0
+                elif acct and acct not in seen_accounts:
+                    richlist.append(holder)
+                    seen_accounts.add(acct)
+            if len(batch) < page_size:
+                break
+            offset += page_size
 
-        if not batch:
-            break
+    # Filter and sort richlist by balance descending (as in the template)
+    def get_balance(holder):
+        try:
+            return float(holder.get("balance", 0))
+        except (ValueError, TypeError):
+            return 0.0
 
-        # Process batch to find burned tokens and filter null account
-        for holder in batch:
-            if holder.get("account") == "null":
-                try:
-                    burned_balance = float(holder.get("balance", 0))
-                except (ValueError, TypeError):
-                    burned_balance = 0.0
-            else:
-                richlist.append(holder)
-
-        # If we got fewer holders than the limit, we have reached the end
-        if len(batch) < limit:
-            break
-
-        # Move to the next batch
-        offset += limit
-
+    richlist.sort(key=get_balance, reverse=True)
     return richlist, burned_balance
 
 
