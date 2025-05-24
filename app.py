@@ -1,3 +1,5 @@
+import csv
+import io
 import json
 import logging
 import re
@@ -10,7 +12,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import requests
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, Response, abort, redirect, render_template, request, url_for
 from nectarengine.api import Api
 from nectarengine.market import Market
 from werkzeug.exceptions import HTTPException
@@ -605,11 +607,13 @@ def view(token):
         except (ValueError, TypeError):
             pass
 
+    # Show only top 100 holders by default
+    top_richlist = richlist[:100]
     return render_template(
         "view.html",
         token=token,
         token_info=token_info,
-        richlist=richlist,
+        richlist=top_richlist,
         burned_balance=burned_balance,
         burned_percentage=burned_percentage,
     )
@@ -619,6 +623,81 @@ def view(token):
 def favicon():
     """Serve the favicon."""
     return redirect(url_for("static", filename="images/favicon.ico"))
+
+
+@app.route("/richlist/<token>")
+def full_richlist(token):
+    token_info = get_token_info(token)
+    if not token_info:
+        abort(404)
+    richlist, burned_balance = get_richlist(token)
+    return render_template(
+        "richlist_full.html",
+        token=token,
+        token_info=token_info,
+        richlist=richlist,
+        burned_balance=burned_balance,
+    )
+
+
+@app.route("/richlist/<token>/csv")
+def export_richlist_csv(token):
+    richlist, _ = get_richlist(token)
+
+    def generate():
+        # Get token_info for percentage calculation
+        token_info = get_token_info(token)
+        try:
+            total_supply = float(token_info.get("supply", 1))
+        except Exception:
+            total_supply = 1
+        data = [
+            [
+                "Rank",
+                "Account",
+                "Balance",
+                "Stake",
+                "Pending Unstake",
+                "Delegations In",
+                "Delegations Out",
+                "Pending Undelegation",
+                "Total",
+                "Percentage",
+            ]
+        ]
+        for idx, holder in enumerate(richlist, 1):
+            balance = float(holder.get("balance", 0) or 0)
+            stake = float(holder.get("stake", 0) or 0)
+            pending_unstake = float(holder.get("pendingUnstake", 0) or 0)
+            delegations_in = float(holder.get("delegationsIn", 0) or 0)
+            delegations_out = float(holder.get("delegationsOut", 0) or 0)
+            pending_undelegation = float(holder.get("pendingUndelegations", 0) or 0)
+            total = balance + stake
+            percentage = (total / total_supply * 100) if total_supply else 0
+            data.append(
+                [
+                    idx,
+                    holder.get("account", ""),
+                    f"{balance:.8f}",
+                    f"{stake:.8f}",
+                    f"{pending_unstake:.8f}",
+                    f"{delegations_in:.8f}",
+                    f"{delegations_out:.8f}",
+                    f"{pending_undelegation:.8f}",
+                    f"{total:.8f}",
+                    f"{percentage:.2f}",
+                ]
+            )
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerows(data)
+        return output.getvalue()
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment;filename={token}_richlist.csv"},
+    )
 
 
 if __name__ == "__main__":

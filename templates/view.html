@@ -54,6 +54,11 @@
                 <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>{{ token }} Richlist</h5>
             </div>
             <div class="card-body">
+                <div class="mb-3">
+                    <a href="{{ url_for('full_richlist', token=token) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-list-ol me-1"></i>View Full Richlist
+                    </a>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
@@ -69,6 +74,8 @@
                         </thead>
                         <tbody>
                             {% for holder in richlist %}
+                            {# Only top 100 are passed from the route, but add a note if at limit #}
+
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>{{ holder.account }}</td>
