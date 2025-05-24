@@ -171,7 +171,7 @@ def get_richlist(symbol):
     richlist = []
     burned_balance = 0.0
     page_size = 1000  # Use the maximum per-request limit
-    prefixes = list(string.ascii_lowercase) + list(string.digits) + ["_"]
+    prefixes = list(string.ascii_lowercase)
     seen_accounts = set()
 
     for prefix in prefixes:
