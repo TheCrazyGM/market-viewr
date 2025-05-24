@@ -186,8 +186,8 @@ def get_richlist(symbol):
                     "symbol": symbol,
                     "account": {"$regex": f"^{prefix}"},
                     "$or": [
-                        {"balance": {"$gt": "0.00"}},
-                        {"stake": {"$gt": "0.00"}}
+                        {"balance": {"$gt": "0.00000000"}},
+                        {"stake": {"$gt": "0.00000000"}}
                     ]
                 },
                 limit=page_size,
