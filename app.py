@@ -182,7 +182,14 @@ def get_richlist(symbol):
             batch = he_api.find(
                 "tokens",
                 "balances",
-                query={"symbol": symbol, "account": {"$regex": f"^{prefix}"}},
+                query={
+                    "symbol": symbol,
+                    "account": {"$regex": f"^{prefix}"},
+                    "$or": [
+                        {"balance": {"$gt": "0.00"}},
+                        {"stake": {"$gt": "0.00"}}
+                    ]
+                },
                 limit=page_size,
                 offset=offset,
                 indexes=[{"index": "balance", "descending": True}],
