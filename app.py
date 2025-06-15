@@ -1,37 +1,40 @@
 import csv
+from datetime import datetime
 import io
 import json
 import logging
 import re
 import string
 import time
-from datetime import datetime
 from urllib.parse import urlparse
 
+from flask import Flask, Response, abort, redirect, render_template, request, url_for
+from flask_caching import Cache
+from nectarengine.api import Api
+from nectarengine.market import Market
 import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import requests
 from requests.adapters import HTTPAdapter, Retry
-from flask import Flask, Response, abort, redirect, render_template, request, url_for
-from nectarengine.api import Api
-from nectarengine.market import Market
+from requests.exceptions import RequestException
 from werkzeug.exceptions import HTTPException
-from flask_caching import Cache
 
 app = Flask(__name__)
 # Cache configuration (prefers Redis, falls back to SimpleCache)
-app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/1'
+app.config["CACHE_REDIS_URL"] = "redis://localhost:6379/1"
 try:
     import redis  # noqa: F401
+
     # Attempt to connect
     import redis as _redis_module
-    _redis_module.from_url(app.config['CACHE_REDIS_URL']).ping()
-    app.config['CACHE_TYPE'] = 'RedisCache'
+
+    _redis_module.from_url(app.config["CACHE_REDIS_URL"]).ping()
+    app.config["CACHE_TYPE"] = "RedisCache"
 except Exception as e:
     # Redis not available – fallback to in-memory cache
     app.logger.warning(f"Redis cache unavailable, using SimpleCache. ({e})")
-    app.config['CACHE_TYPE'] = 'SimpleCache'
+    app.config["CACHE_TYPE"] = "SimpleCache"
 
 cache = Cache(app)
 # Setup Logger
@@ -87,7 +90,7 @@ HE_HISTORY_API = "https://history.hive-engine.com"
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[502, 503, 504])
 session.mount("https://", HTTPAdapter(max_retries=retries))
-he_api = Api(url="https://enginerpc.com/", timeout=15, session=session)
+he_api = Api(url="https://enginerpc.com/", timeout=8, session=session)
 he_market = Market(api=he_api)
 
 
@@ -190,62 +193,67 @@ def get_market_data(symbol, days=30):
     return []
 
 
+
 # Get token richlist
 @cache.memoize(timeout=900)
 def get_richlist(symbol):
-    richlist = []
+    """Return richlist and burned balance with retry-safe RPC and caching."""
+    richlist: list[dict] = []
     burned_balance = 0.0
-    page_size = 1000  # Use the maximum per-request limit
+    page_size = 1000  # Hive-Engine max per request
     prefixes = list(string.ascii_lowercase)
-    seen_accounts = set()
+    seen_accounts: set[str] = set()
 
-    for prefix in prefixes:
-        offset = 0
-        while True:
-            batch = he_api.find(
-                "tokens",
-                "balances",
-                query={
-                    "symbol": symbol,
-                    "account": {"$regex": f"^{prefix}"},
-                    "$or": [
-                        {"balance": {"$gt": "0.00000000"}},
-                        {"stake": {"$gt": "0.00000000"}}
-                    ]
-                },
-                limit=page_size,
-                offset=offset,
-                indexes=[{"index": "balance", "descending": True}],
-            )
-            if not batch:
-                break
-            for holder in batch:
-                acct = holder.get("account")
-                if acct == "null":
-                    try:
-                        burned_balance = float(holder.get("balance", 0))
-                    except (ValueError, TypeError):
-                        burned_balance = 0.0
-                elif acct and acct not in seen_accounts:
-                    # Calculate total holdings (balance + stake) for accurate ranking
-                    try:
+    try:
+        for prefix in prefixes:
+            offset = 0
+            while True:
+                batch = he_api.find(
+                    "tokens",
+                    "balances",
+                    query={
+                        "symbol": symbol,
+                        "account": {"$regex": f"^{prefix}"},
+                        "$or": [
+                            {"balance": {"$gt": "0.00000000"}},
+                            {"stake": {"$gt": "0.00000000"}},
+                        ],
+                    },
+                    limit=page_size,
+                    offset=offset,
+                    indexes=[{"index": "balance", "descending": True}],
+                )
+                if not batch:
+                    break
+
+                for holder in batch:
+                    acct = holder.get("account")
+                    if acct == "null":
+                        # burned tokens
+                        try:
+                            burned_balance = float(holder.get("balance", 0))
+                        except (ValueError, TypeError):
+                            burned_balance = 0.0
+                        continue
+
+                    if acct and acct not in seen_accounts:
                         balance_val = float(holder.get("balance", 0) or 0)
-                    except (ValueError, TypeError):
-                        balance_val = 0.0
-                    try:
                         stake_val = float(holder.get("stake", 0) or 0)
-                    except (ValueError, TypeError):
-                        stake_val = 0.0
-                    holder["total"] = balance_val + stake_val
-                    richlist.append(holder)
-                    seen_accounts.add(acct)
-            if len(batch) < page_size:
-                break
-            offset += page_size
+                        holder["total"] = balance_val + stake_val
+                        richlist.append(holder)
+                        seen_accounts.add(acct)
 
-    # Sort holders by total holdings (balance + stake) descending
-    richlist.sort(key=lambda h: h.get("total", 0), reverse=True)
-    return richlist, burned_balance
+                if len(batch) < page_size:
+                    break
+                offset += page_size
+
+        # After looping through all prefixes, sort and return
+        richlist.sort(key=lambda h: h.get("total", 0), reverse=True)
+        return richlist, burned_balance
+
+    except RequestException as e:
+        app.logger.error(f"Richlist RPC failed: {e}")
+        raise RuntimeError("Hive-Engine RPC timeout")
 
 
 # Get token market history
@@ -633,7 +641,14 @@ def view(token):
     if not token_info:
         abort(404)
 
-    richlist, burned_balance = get_richlist(token)
+    try:
+        richlist, burned_balance = get_richlist(token)
+    except RuntimeError:
+        return render_template(
+            "error_generic.html",
+            code="503 - Service Unavailable",
+            message="Richlist temporarily unavailable. Please try again later.",
+        ), 503
 
     # Calculate burned percentage if supply is available
     burned_percentage = 0.0
@@ -669,7 +684,15 @@ def full_richlist(token):
     token_info = get_token_info(token)
     if not token_info:
         abort(404)
-    richlist, burned_balance = get_richlist(token)
+    try:
+        richlist, burned_balance = get_richlist(token)
+    except RuntimeError:
+        return render_template(
+            "error_generic.html",
+            code="503 - Service Unavailable",
+            message="Richlist temporarily unavailable. Please try again later.",
+        ), 503
+
     return render_template(
         "richlist_full.html",
         token=token,
@@ -682,7 +705,10 @@ def full_richlist(token):
 @app.route("/richlist/<token>/csv")
 @cache.cached(timeout=900)
 def export_richlist_csv(token):
-    richlist, _ = get_richlist(token)
+    try:
+        richlist, _ = get_richlist(token)
+    except RuntimeError:
+        abort(503)
 
     def generate():
         # Get token_info for percentage calculation
