@@ -12,6 +12,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import requests
+from requests.adapters import HTTPAdapter, Retry
 from flask import Flask, Response, abort, redirect, render_template, request, url_for
 from nectarengine.api import Api
 from nectarengine.market import Market
@@ -82,7 +83,11 @@ def timestamp_to_date(timestamp):
 HE_HISTORY_API = "https://history.hive-engine.com"
 
 # Initialize hiveengine API
-he_api = Api(url="https://enginerpc.com/", timeout=15)
+# Configure requests session with retries to make Hive-Engine calls more resilient
+session = requests.Session()
+retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[502, 503, 504])
+session.mount("https://", HTTPAdapter(max_retries=retries))
+he_api = Api(url="https://enginerpc.com/", timeout=15, session=session)
 he_market = Market(api=he_api)
 
 
