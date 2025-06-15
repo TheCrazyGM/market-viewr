@@ -16,8 +16,23 @@ from flask import Flask, Response, abort, redirect, render_template, request, ur
 from nectarengine.api import Api
 from nectarengine.market import Market
 from werkzeug.exceptions import HTTPException
+from flask_caching import Cache
 
 app = Flask(__name__)
+# Cache configuration (prefers Redis, falls back to SimpleCache)
+app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/1'
+try:
+    import redis  # noqa: F401
+    # Attempt to connect
+    import redis as _redis_module
+    _redis_module.from_url(app.config['CACHE_REDIS_URL']).ping()
+    app.config['CACHE_TYPE'] = 'RedisCache'
+except Exception as e:
+    # Redis not available – fallback to in-memory cache
+    app.logger.warning(f"Redis cache unavailable, using SimpleCache. ({e})")
+    app.config['CACHE_TYPE'] = 'SimpleCache'
+
+cache = Cache(app)
 # Setup Logger
 app.logger = logging.getLogger(__name__)
 
@@ -286,6 +301,7 @@ def get_trade_history(symbol, limit=100, days=30):
 # Routes
 @app.route("/")
 @app.route("/page/<int:page>")
+@cache.cached(timeout=3600, query_string=True)
 def index(page=1):
     """Display the homepage with a list of all tokens with pagination and search."""
     # Get search query from request args
@@ -567,6 +583,7 @@ def api_orderbook(token):
 
 
 @app.route("/market/<token>")
+@cache.cached(timeout=300)
 def market(token):
     """Display market data for a specific token."""
     token_info = get_token_info(token)
@@ -600,6 +617,7 @@ def market(token):
 
 
 @app.route("/view/<token>")
+@cache.cached(timeout=900)
 def view(token):
     """Display token information and richlist."""
     token_info = get_token_info(token)
@@ -637,6 +655,7 @@ def favicon():
 
 
 @app.route("/richlist/<token>")
+@cache.cached(timeout=900)
 def full_richlist(token):
     token_info = get_token_info(token)
     if not token_info:

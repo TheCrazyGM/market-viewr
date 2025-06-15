@@ -19,6 +19,8 @@ dependencies = [
     "plotly",
     "gunicorn>=23.0.0",
     "nectarengine",
+    "flask-caching>=2.3.1",
+    "redis>=6.2.0",
 ]
 requires-python = ">=3.13"
 
