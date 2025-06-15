@@ -17,10 +17,10 @@ dependencies = [
     "requests",
     "pandas",
     "plotly",
-    "gunicorn>=23.0.0",
+    "gunicorn",
     "nectarengine",
-    "flask-caching>=2.3.1",
-    "redis>=6.2.0",
+    "flask-caching",
+    "redis",
 ]
 requires-python = ">=3.13"
 
