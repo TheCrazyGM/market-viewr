@@ -82,7 +82,7 @@ def timestamp_to_date(timestamp):
 HE_HISTORY_API = "https://history.hive-engine.com"
 
 # Initialize hiveengine API
-he_api = Api(url="https://enginerpc.com/")
+he_api = Api(url="https://enginerpc.com/", timeout=15)
 he_market = Market(api=he_api)
 
 
@@ -111,6 +111,7 @@ def is_valid_image_url(url):
         return False
 
 
+@cache.memoize(timeout=3600)
 def get_tokens():
     """Get list of all tokens from Hive Engine with pagination."""
     tokens = []
@@ -136,6 +137,7 @@ def get_tokens():
 
 
 # Get token info
+@cache.memoize(timeout=900)
 def get_token_info(token):
     """Get token information from Hive-Engine."""
     try:
@@ -184,6 +186,7 @@ def get_market_data(symbol, days=30):
 
 
 # Get token richlist
+@cache.memoize(timeout=900)
 def get_richlist(symbol):
     richlist = []
     burned_balance = 0.0
@@ -241,6 +244,7 @@ def get_richlist(symbol):
 
 
 # Get token market history
+@cache.memoize(timeout=300)
 def get_trade_history(symbol, limit=100, days=30):
     try:
         all_trades = []
@@ -671,6 +675,7 @@ def full_richlist(token):
 
 
 @app.route("/richlist/<token>/csv")
+@cache.cached(timeout=900)
 def export_richlist_csv(token):
     richlist, _ = get_richlist(token)
 
