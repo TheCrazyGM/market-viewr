@@ -204,20 +204,24 @@ def get_richlist(symbol):
                     except (ValueError, TypeError):
                         burned_balance = 0.0
                 elif acct and acct not in seen_accounts:
+                    # Calculate total holdings (balance + stake) for accurate ranking
+                    try:
+                        balance_val = float(holder.get("balance", 0) or 0)
+                    except (ValueError, TypeError):
+                        balance_val = 0.0
+                    try:
+                        stake_val = float(holder.get("stake", 0) or 0)
+                    except (ValueError, TypeError):
+                        stake_val = 0.0
+                    holder["total"] = balance_val + stake_val
                     richlist.append(holder)
                     seen_accounts.add(acct)
             if len(batch) < page_size:
                 break
             offset += page_size
 
-    # Filter and sort richlist by balance descending (as in the template)
-    def get_balance(holder):
-        try:
-            return float(holder.get("balance", 0))
-        except (ValueError, TypeError):
-            return 0.0
-
-    richlist.sort(key=get_balance, reverse=True)
+    # Sort holders by total holdings (balance + stake) descending
+    richlist.sort(key=lambda h: h.get("total", 0), reverse=True)
     return richlist, burned_balance
 
 
