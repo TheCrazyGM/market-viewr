@@ -1,7 +1,7 @@
-flask==3.1.1
-requests==2.32.3
-pandas==2.2.3
-plotly==6.0.0
+flask
+requests
+pandas
+plotly
 nectarengine
-Flask-Caching==2.1.0
-redis==5.0.4
+Flask-Caching
+redis
