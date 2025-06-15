@@ -1,21 +1,21 @@
 import csv
-from datetime import datetime
 import io
 import json
 import logging
 import re
 import string
 import time
+from datetime import datetime
 from urllib.parse import urlparse
 
-from flask import Flask, Response, abort, redirect, render_template, request, url_for
-from flask_caching import Cache
-from nectarengine.api import Api
-from nectarengine.market import Market
 import pandas as pd
 import plotly
 import plotly.graph_objects as go
 import requests
+from flask import Flask, Response, abort, redirect, render_template, request, url_for
+from flask_caching import Cache
+from nectarengine.api import Api
+from nectarengine.market import Market
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 from werkzeug.exceptions import HTTPException
@@ -90,7 +90,7 @@ HE_HISTORY_API = "https://history.hive-engine.com"
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[502, 503, 504])
 session.mount("https://", HTTPAdapter(max_retries=retries))
-he_api = Api(url="https://enginerpc.com/", timeout=8, session=session)
+he_api = Api(url="https://enginerpc.com/", timeout=30, session=session)
 he_market = Market(api=he_api)
 
 
@@ -191,7 +191,6 @@ def get_market_data(symbol, days=30):
         data = response.json()
         return data
     return []
-
 
 
 # Get token richlist
