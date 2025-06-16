@@ -315,6 +315,11 @@ def get_trade_history(symbol, limit=100, days=30):
 
 
 # Routes
+
+@app.route('/robots.txt')
+def robots_txt():
+    return app.send_static_file('robots.txt')
+
 @app.route("/")
 @app.route("/page/<int:page>")
 @cache.cached(timeout=3600, query_string=True)
