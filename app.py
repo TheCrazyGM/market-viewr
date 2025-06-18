@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import logging
+import random
 import re
 import string
 import time
@@ -85,12 +86,74 @@ def timestamp_to_date(timestamp):
 # Hive Engine API endpoints for history API
 HE_HISTORY_API = "https://history.hive-engine.com"
 
+
+def get_engine_nodes(max_nodes: int = 10, timeout: int = 3):
+    """Return a list of healthy Hive-Engine RPC nodes.
+
+    The list is fetched from the `flowerengine` account's `json_metadata` field
+    on the Hive blockchain.  Each node is then probed with a lightweight RPC
+    call and only nodes that respond successfully within *timeout* seconds are
+    returned.  Always falls back to ``https://enginerpc.com/`` if no nodes are
+    reachable.
+    """
+
+    # Step 1. Fetch node list from the Hive blockchain
+    try:
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "database_api.find_accounts",
+            "params": {"accounts": ["flowerengine"]},
+            "id": 1,
+        }
+        resp = requests.post("https://api.hive.blog", json=payload, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        meta_str = (
+            data.get("result", {}).get("accounts", [{}])[0].get("json_metadata", "{}")
+        )
+        meta = json.loads(meta_str) if meta_str else {}
+        nodes = meta.get("nodes", [])
+    except Exception as e:
+        app.logger.warning(f"Failed to fetch node list from flowerengine: {e}")
+        nodes = []
+
+    # Ensure we have a list to iterate
+    if not isinstance(nodes, list):
+        nodes = []
+
+    # Step 2. Probe each node to see if it is responding
+    healthy_nodes: list[str] = []
+    test_payload = {"jsonrpc": "2.0", "method": "getStatus", "params": {}, "id": 1}
+
+    for node in nodes:
+        if len(healthy_nodes) >= max_nodes:
+            break
+        try:
+            r = requests.post(node, json=test_payload, timeout=timeout)
+            if r.ok and r.json().get("result"):
+                healthy_nodes.append(node)
+        except Exception:
+            continue
+
+    # Always include the public fallback node
+    fallback = "https://enginerpc.com/"
+    if fallback not in healthy_nodes:
+        healthy_nodes.append(fallback)
+
+    return healthy_nodes
+
+
 # Initialize hiveengine API
 # Configure requests session with retries to make Hive-Engine calls more resilient
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[502, 503, 504])
 session.mount("https://", HTTPAdapter(max_retries=retries))
-he_api = Api(url="https://enginerpc.com/", timeout=30, session=session)
+nodes = get_engine_nodes()
+he_api = Api(
+    url=random.choice(nodes) if nodes else "https://enginerpc.com/",
+    timeout=30,
+    session=session,
+)
 he_market = Market(api=he_api)
 
 
@@ -316,9 +379,11 @@ def get_trade_history(symbol, limit=100, days=30):
 
 # Routes
 
-@app.route('/robots.txt')
+
+@app.route("/robots.txt")
 def robots_txt():
-    return app.send_static_file('robots.txt')
+    return app.send_static_file("robots.txt")
+
 
 @app.route("/")
 @app.route("/page/<int:page>")

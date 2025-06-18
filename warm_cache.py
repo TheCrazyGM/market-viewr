@@ -15,8 +15,9 @@ The script expects the same virtualenv as the main app, with Redis running if
 import logging
 from typing import List
 
-from app import app, get_tokens, get_richlist
 from flask import current_app
+
+from app import app, get_richlist, get_tokens
 
 
 def warm_richlists() -> None:
