@@ -12,13 +12,19 @@ clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -fr {} +
 
 lint:
-	uv run ruff check --fix
-	uv run ruff check --select I --fix
+	uv run ruff check --fix .
+
+lint-html:
+	npx prettier --plugin=prettier-plugin-jinja-template --parser=jinja-template --write **/*.html
+
+imports:
+	uv run ruff check --select I --fix .
 
 format:
-	uv run ruff format 
+	uv run ruff format .
 
 git:
 	git push --all
