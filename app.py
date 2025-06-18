@@ -147,7 +147,9 @@ def get_engine_nodes(max_nodes: int = 10, timeout: int = 3):
 # Configure requests session with retries to make Hive-Engine calls more resilient
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[502, 503, 504])
-session.mount("https://", HTTPAdapter(max_retries=retries))
+adapter = HTTPAdapter(max_retries=retries)
+session.mount("https://", adapter)
+session.mount("http://", adapter)
 nodes = get_engine_nodes()
 he_api = Api(
     url=random.choice(nodes) if nodes else "https://enginerpc.com/",
