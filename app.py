@@ -6,7 +6,7 @@ import random
 import re
 import string
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -437,6 +437,34 @@ def get_trade_history(symbol, limit=100, days=30):
 
 
 # Routes
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint to verify the application and its dependencies are running."""
+    status = {
+        'status': 'ok',
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'dependencies': {}
+    }
+    
+    # Check Redis connection
+    try:
+        cache.set('healthcheck', 'ok', timeout=5)
+        status['dependencies']['redis'] = 'ok'
+    except Exception as e:
+        status['status'] = 'error'
+        status['dependencies']['redis'] = f'error: {str(e)}'
+    
+    # Check Hive-Engine API connection
+    try:
+        # Use a lightweight API call to check connectivity
+        he_api.get_tokens(limit=1)
+        status['dependencies']['hive_engine'] = 'ok'
+    except Exception as e:
+        status['status'] = 'error'
+        status['dependencies']['hive_engine'] = f'error: {str(e)}'
+    
+    return status, 200 if status['status'] == 'ok' else 503
 
 
 @app.route("/robots.txt")
