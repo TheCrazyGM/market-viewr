@@ -455,10 +455,10 @@ def health_check():
         status['status'] = 'error'
         status['dependencies']['redis'] = f'error: {str(e)}'
     
-    # Check Hive-Engine API connection
+    # Check Hive-Engine API connection using a simple and valid token query
     try:
-        # Use a lightweight API call to check connectivity
-        he_api.get_tokens(limit=1)
+        # Fetch the first token as a health test
+        he_api.find_one("tokens", "tokens", query={})
         status['dependencies']['hive_engine'] = 'ok'
     except Exception as e:
         status['status'] = 'error'
