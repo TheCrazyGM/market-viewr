@@ -97,25 +97,48 @@ def get_engine_nodes(max_nodes: int = 10, timeout: int = 3):
     reachable.
     """
 
-    # Step 1. Fetch node list from the Hive blockchain
-    try:
-        payload = {
-            "jsonrpc": "2.0",
-            "method": "database_api.find_accounts",
-            "params": {"accounts": ["flowerengine"]},
-            "id": 1,
-        }
-        resp = requests.post("https://api.hive.blog", json=payload, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        meta_str = (
-            data.get("result", {}).get("accounts", [{}])[0].get("json_metadata", "{}")
-        )
-        meta = json.loads(meta_str) if meta_str else {}
-        nodes = meta.get("nodes", [])
-    except Exception as e:
-        app.logger.warning(f"Failed to fetch node list from flowerengine: {e}")
-        nodes = []
+    # Step 1. Fetch node list from the Hive blockchain using multiple API endpoints
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "database_api.find_accounts",
+        "params": {"accounts": ["flowerengine"]},
+        "id": 1,
+    }
+
+    # List of public Hive API nodes to try
+    hive_api_nodes = [
+        "https://api.hive.blog",
+        "https://api.syncad.com",
+        "https://anyx.io",
+    ]
+
+    nodes: list[str] = []
+    for hive_node in hive_api_nodes:
+        app.logger.debug(f"Attempting to fetch node list from {hive_node}")
+        try:
+            resp = requests.post(hive_node, json=payload, timeout=5)
+            app.logger.debug(
+                f"Response status from {hive_node}: {resp.status_code if resp else 'no response'}"
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            meta_str = (
+                data.get("result", {}).get("accounts", [{}])[0].get("json_metadata", "{}")
+            )
+            app.logger.debug(f"Raw json_metadata from {hive_node}: {meta_str[:200]}")
+            meta = json.loads(meta_str) if meta_str else {}
+            nodes = meta.get("nodes", [])
+            app.logger.debug(f"Extracted {len(nodes)} nodes from {hive_node}")
+            if nodes:
+                app.logger.info(f"Successfully retrieved node list from {hive_node}")
+                break  # Successfully retrieved node list
+        except Exception as e:
+            app.logger.warning(
+                f"Failed to fetch node list from {hive_node}: {e}"
+            )
+            continue  # Try the next Hive API node
+
+    # If all attempts failed, nodes will remain an empty list
 
     # Ensure we have a list to iterate
     if not isinstance(nodes, list):
@@ -123,15 +146,24 @@ def get_engine_nodes(max_nodes: int = 10, timeout: int = 3):
 
     # Step 2. Probe each node to see if it is responding
     healthy_nodes: list[str] = []
-    test_payload = {"jsonrpc": "2.0", "method": "getStatus", "params": {}, "id": 1}
+    # Use an RPC method that all Hive-Engine nodes support for health checking
+    test_payload = {
+        "jsonrpc": "2.0",
+        "method": "blockchain.getLatestBlockInfo",
+        "params": {},
+        "id": 1,
+    }
 
     for node in nodes:
         if len(healthy_nodes) >= max_nodes:
             break
         try:
             r = requests.post(node, json=test_payload, timeout=timeout)
-            if r.ok and r.json().get("result"):
-                healthy_nodes.append(node)
+            if r.ok:
+                res = r.json().get("result")
+                # A valid response should contain a block number field
+                if isinstance(res, dict) and res.get("blockNumber"):
+                    healthy_nodes.append(node)
         except Exception:
             continue
 
@@ -151,12 +183,37 @@ adapter = HTTPAdapter(max_retries=retries)
 session.mount("https://", adapter)
 session.mount("http://", adapter)
 nodes = get_engine_nodes()
-he_api = Api(
-    url=random.choice(nodes) if nodes else "https://enginerpc.com/",
-    timeout=30,
-    session=session,
-)
-he_market = Market(api=he_api)
+
+# Helper factories that pick a fresh random node each time
+
+def get_he_api():
+    """Return a new Api instance pointing at a random healthy Hive-Engine node."""
+    return Api(
+        url=random.choice(nodes) if nodes else "https://enginerpc.com/",
+        timeout=30,
+        session=session,
+    )
+
+
+def get_he_market():
+    """Return a new Market instance bound to a fresh Api."""
+    return Market(api=get_he_api())
+
+
+class _LazyProxy:
+    """Delegate attribute access to a freshly-constructed object from *factory*."""
+
+    def __init__(self, factory):
+        self._factory = factory
+
+    def __getattr__(self, item):
+        # Create a new underlying object on every attribute access
+        return getattr(self._factory(), item)
+
+
+# These proxies keep existing code unchanged while distributing calls across nodes
+he_api = _LazyProxy(get_he_api)
+he_market = _LazyProxy(get_he_market)
 
 
 # Validate if URL is an image
