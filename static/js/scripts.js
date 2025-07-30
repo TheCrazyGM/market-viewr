@@ -253,7 +253,7 @@ function ensureTableFormatting() {
   // Format trade history table
   document
     .querySelectorAll(
-      "#trade-history-table td:nth-child(4), #trade-history-table td:nth-child(5), #trade-history-table td:nth-child(6)",
+      "#trade-history-table td:nth-child(5), #trade-history-table td:nth-child(6), #trade-history-table td:nth-child(7)",
     )
     .forEach((cell) => {
       cell.classList.add("number-cell", "text-end");

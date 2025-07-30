@@ -297,8 +297,9 @@
                 <thead>
                   <tr>
                     <th>Date/Time</th>
-                    <th>Type</th>
-                    <th>Account</th>
+                    <th class="text-center">Type</th>
+                    <th>Buyer</th>
+                    <th>Seller</th>
                     <th class="number-cell text-end">Quantity</th>
                     <th class="number-cell text-end price-column">
                       Price (HIVE)
@@ -311,13 +312,12 @@
                     <tr>
                       <td>{{ trade.timestamp | int | timestamp_to_date }}</td>
                       {% if trade.type == 'buy' %}
-                        <td class="text-success fw-bold">BUY</td>
+                        <td class="text-success fw-bold text-center">BUY</td>
                       {% else %}
-                        <td class="text-danger fw-bold">SELL</td>
+                        <td class="text-danger fw-bold text-center">SELL</td>
                       {% endif %}
-                      <td>
-                        {{ trade.buyer if trade.type == 'buy' else trade.seller }}
-                      </td>
+                      <td>{{ trade.buyer }}</td>
+                      <td>{{ trade.seller }}</td>
                       <td class="number-cell text-end">{{ trade.quantity }}</td>
                       <td
                         class="number-cell text-end price-column {% if trade.type == 'buy' %}text-success{% else %}text-danger{% endif %} fw-bold"
