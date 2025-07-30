@@ -71,13 +71,24 @@ function sortTable(table, column, forcedDirection = null) {
     let valueA = cellA.textContent.trim();
     let valueB = cellB.textContent.trim();
 
-    // Check if the values are numbers
+    // Attempt to parse YYYY-MM-DD HH:MM:SS or ISO date strings first
+    const parseDateValue = (str) => {
+      const isoLike = str.trim().replace(' ', 'T');
+      return Date.parse(isoLike);
+    };
+    const dateA = parseDateValue(valueA);
+    const dateB = parseDateValue(valueB);
+    if (!isNaN(dateA) && !isNaN(dateB)) {
+      return direction * (dateA - dateB);
+    }
+
+    // Check if the values are numbers AFTER trying dates
     const numA = parseFloat(valueA.replace(/,/g, ""));
     const numB = parseFloat(valueB.replace(/,/g, ""));
-
     if (!isNaN(numA) && !isNaN(numB)) {
       return direction * (numA - numB);
     }
+
 
     // Otherwise sort as strings
     return direction * valueA.localeCompare(valueB);
