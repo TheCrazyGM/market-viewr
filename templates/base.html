@@ -101,66 +101,66 @@
             href="https://peakd.com/@thecrazygm"
             target="_blank"
             class="text-decoration-none"
-            >thecrazygm</a
-          >
-          <span class="mx-2">|</span>
-          <a
-            href="https://thecrazygm.com/hivetools/give/mithril.donation/2/HBD/Buy%20a%20coffee"
-            target="_blank"
-            class="text-decoration-none"
-          >
-            <i class="bi bi-cup-hot"></i> Buy us a coffee
-          </a>
-        </span>
-      </div>
-    </footer>
+          >thecrazygm</a
+            >
+            <span class="mx-2">|</span>
+            <a
+              href="https://thecrazygm.com/hivetools/give/mithril.donation/2/HBD/Buy%20a%20coffee"
+              target="_blank"
+              class="text-decoration-none"
+            >
+              <i class="bi bi-cup-hot"></i> Buy us a coffee
+            </a>
+          </span>
+        </div>
+      </footer>
 
     <!-- Bootstrap 5 JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Theme Toggle JS -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const themeToggle = document.getElementById("themeToggle");
-        const lightIcon = document.getElementById("lightIcon");
-        const darkIcon = document.getElementById("darkIcon");
-        const htmlElement = document.documentElement;
-        const appFooter = document.getElementById("appFooter");
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          const themeToggle = document.getElementById("themeToggle");
+          const lightIcon = document.getElementById("lightIcon");
+          const darkIcon = document.getElementById("darkIcon");
+          const htmlElement = document.documentElement;
+          const appFooter = document.getElementById("appFooter");
 
         // Check for saved theme preference
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme === "dark") {
-          htmlElement.setAttribute("data-bs-theme", "dark");
-          themeToggle.checked = true;
-          updateIconsAndUI("dark");
-        }
+          const savedTheme = localStorage.getItem("theme");
+          if (savedTheme === "dark") {
+            htmlElement.setAttribute("data-bs-theme", "dark");
+            themeToggle.checked = true;
+            updateIconsAndUI("dark");
+          }
 
         // Toggle theme on switch change
-        themeToggle.addEventListener("change", function () {
-          const newTheme = this.checked ? "dark" : "light";
-          htmlElement.setAttribute("data-bs-theme", newTheme);
-          localStorage.setItem("theme", newTheme);
-          updateIconsAndUI(newTheme);
-        });
+          themeToggle.addEventListener("change", function () {
+            const newTheme = this.checked ? "dark" : "light";
+            htmlElement.setAttribute("data-bs-theme", newTheme);
+            localStorage.setItem("theme", newTheme);
+            updateIconsAndUI(newTheme);
+          });
 
         // Update UI based on current theme
-        function updateIconsAndUI(theme) {
+          function updateIconsAndUI(theme) {
           // Update icons
-          if (theme === "dark") {
-            lightIcon.classList.add("d-none");
-            darkIcon.classList.remove("d-none");
-            appFooter.classList.remove("bg-light");
-            appFooter.classList.add("bg-dark");
-          } else {
-            lightIcon.classList.remove("d-none");
-            darkIcon.classList.add("d-none");
-            appFooter.classList.remove("bg-dark");
-            appFooter.classList.add("bg-light");
+            if (theme === "dark") {
+              lightIcon.classList.add("d-none");
+              darkIcon.classList.remove("d-none");
+              appFooter.classList.remove("bg-light");
+              appFooter.classList.add("bg-dark");
+            } else {
+              lightIcon.classList.remove("d-none");
+              darkIcon.classList.add("d-none");
+              appFooter.classList.remove("bg-dark");
+              appFooter.classList.add("bg-light");
+            }
           }
-        }
-      });
-    </script>
+        });
+      </script>
     <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    {% block scripts %}{% endblock %}
-  </body>
-</html>
+      <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+      {% block scripts %}{% endblock %}
+    </body>
+  </html>

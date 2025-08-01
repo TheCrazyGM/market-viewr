@@ -79,15 +79,15 @@
                         <a
                           href="{{ url_for('market', token=token.symbol) }}"
                           class="btn btn-sm btn-outline-primary"
-                          >Market</a
-                        >
-                        <a
-                          href="{{ url_for('view', token=token.symbol) }}"
-                          class="btn btn-sm btn-outline-secondary"
+                        >Market</a
+                          >
+                          <a
+                            href="{{ url_for('view', token=token.symbol) }}"
+                            class="btn btn-sm btn-outline-secondary"
                           >Info</a
-                        >
-                      </td>
-                    </tr>
+                            >
+                          </td>
+                        </tr>
                   {% endfor %}
                 {% else %}
                   <tr>
@@ -99,9 +99,9 @@
                           <a
                             href="{{ url_for('index') }}"
                             class="alert-link ms-2"
-                            >Show all tokens</a
-                          >
-                        </div>
+                          >Show all tokens</a
+                            >
+                          </div>
                       {% else %}
                         <div class="alert alert-warning mb-0">
                           <i class="bi bi-exclamation-triangle me-2"></i>No
@@ -149,9 +149,9 @@
                       <a
                         class="page-link"
                         href="{{ url_for('index', page=p, q=search_query) }}"
-                        >{{ p }}</a
-                      >
-                    </li>
+                      >{{ p }}</a
+                        >
+                      </li>
                   {% endfor %}
 
                   <!-- Next page button -->

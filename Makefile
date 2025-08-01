@@ -18,7 +18,8 @@ lint:
 	uv run ruff check --fix .
 
 lint-html:
-	npx prettier --plugin=prettier-plugin-jinja-template --parser=jinja-template --write **/*.html
+	uvx djhtml templates
+	#npx prettier --plugin=prettier-plugin-jinja-template --parser=jinja-template --write **/*.html
 
 imports:
 	uv run ruff check --select I --fix .
