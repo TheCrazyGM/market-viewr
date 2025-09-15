@@ -1,6 +1,8 @@
 // Custom JavaScript for Market-Viewr
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Always reset the top load bar on fresh load
+  resetTopLoadBar();
   // Activate tooltips
   const tooltipTriggerList = [].slice.call(
     document.querySelectorAll('[data-bs-toggle="tooltip"]'),
@@ -47,6 +49,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize action button loading states (top load bar)
   initActionButtonLoading();
+});
+
+// Also handle back/forward cache restores and tab visibility changes
+window.addEventListener('pageshow', function(event) {
+  // When navigating back/forward, ensure the bar isn't stuck
+  resetTopLoadBar();
+});
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    resetTopLoadBar();
+  }
 });
 
 // Function to sort tables
@@ -238,7 +252,7 @@ function ensureTableFormatting() {
   // Format buy book table
   document
     .querySelectorAll(
-      "#buy-book-table td:nth-child(3), #buy-book-table td:nth-child(4), #buy-book-table td:nth-child(5)",
+      "#buy-book-table td:nth-child(3):not([colspan]), #buy-book-table td:nth-child(4):not([colspan]), #buy-book-table td:nth-child(5):not([colspan])",
     )
     .forEach((cell) => {
       cell.classList.add("number-cell", "text-end");
@@ -247,7 +261,7 @@ function ensureTableFormatting() {
   // Format sell book table
   document
     .querySelectorAll(
-      "#sell-book-table td:nth-child(1), #sell-book-table td:nth-child(2), #sell-book-table td:nth-child(3)",
+      "#sell-book-table td:nth-child(1):not([colspan]), #sell-book-table td:nth-child(2):not([colspan]), #sell-book-table td:nth-child(3):not([colspan])",
     )
     .forEach((cell) => {
       cell.classList.add("number-cell", "text-end");
@@ -255,13 +269,13 @@ function ensureTableFormatting() {
 
   // Make sure price columns have the right classes
   document
-    .querySelectorAll("#buy-book-table td:nth-child(5)")
+    .querySelectorAll("#buy-book-table td:nth-child(5):not([colspan])")
     .forEach((cell) => {
       cell.classList.add("price-column", "text-success", "fw-bold");
     });
 
   document
-    .querySelectorAll("#sell-book-table td:nth-child(1)")
+    .querySelectorAll("#sell-book-table td:nth-child(1):not([colspan])")
     .forEach((cell) => {
       cell.classList.add("price-column", "text-danger", "fw-bold");
     });
@@ -396,6 +410,14 @@ function finishTopLoadBar() {
     bar.style.transition = 'width 0.2s ease';
     bar.style.width = '0%';
   }, 150);
+}
+
+function resetTopLoadBar() {
+  const bar = document.getElementById('page-load-bar');
+  if (!bar) return;
+  clearInterval(loadBarTimer);
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
 }
 
 // Update the most active accounts list
@@ -606,7 +628,7 @@ function updateOrderBook(orders, tableId) {
     // Show no orders message
     const row = document.createElement("tr");
     const colSpan = table.querySelector("thead tr").children.length || 5;
-    row.innerHTML = `<td colspan="${colSpan}" class="text-center">No orders available</td>`;
+    row.innerHTML = `<td colspan="${colSpan}" class="text-center text-muted empty-state">No orders available</td>`;
     tableBody.appendChild(row);
   }
 
