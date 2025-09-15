@@ -52,12 +52,12 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Also handle back/forward cache restores and tab visibility changes
-window.addEventListener('pageshow', function(event) {
+window.addEventListener('pageshow', function (event) {
   // When navigating back/forward, ensure the bar isn't stuck
   resetTopLoadBar();
 });
 
-document.addEventListener('visibilitychange', function() {
+document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible') {
     resetTopLoadBar();
   }
