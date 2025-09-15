@@ -77,15 +77,17 @@
                       <td>
                         <a
                           href="{{ url_for('market', token=token.symbol) }}"
-                          class="btn btn-sm btn-outline-primary"
-                        >Market</a
-                          >
+                          class="btn btn-sm btn-outline-primary action-btn"
+                          data-token="{{ token.symbol }}"
+                          data-action="market"
+                        ><i class="bi bi-graph-up-arrow me-1"></i>Market</a>
                           <a
                             href="{{ url_for('view', token=token.symbol) }}"
-                            class="btn btn-sm btn-outline-secondary"
-                          >Info</a
-                            >
-                          </td>
+                            class="btn btn-sm btn-outline-secondary action-btn"
+                            data-token="{{ token.symbol }}"
+                            data-action="info"
+                          ><i class="bi bi-info-circle me-1"></i>Info</a>
+                      </td>
                         </tr>
                   {% endfor %}
                 {% else %}

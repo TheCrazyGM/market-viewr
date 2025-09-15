@@ -44,6 +44,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize lazy loading for token icons
   initLazyTokenIcons();
+
+  // Initialize action button loading states (top load bar)
+  initActionButtonLoading();
 });
 
 // Function to sort tables
@@ -346,6 +349,53 @@ function initLazyTokenIcons() {
     // Fallback: load immediately
     images.forEach((img) => loadImg(img));
   }
+}
+
+// Initialize loading states for action buttons (Market/Info)
+function initActionButtonLoading() {
+  const actionButtons = document.querySelectorAll('a.action-btn');
+  if (actionButtons.length === 0) return;
+
+  actionButtons.forEach((button) => {
+    button.addEventListener('click', function () {
+      startTopLoadBar();
+    });
+  });
+}
+
+// Top page load bar logic
+let loadBarTimer = null;
+function startTopLoadBar() {
+  const bar = document.getElementById('page-load-bar');
+  if (!bar) return;
+
+  // Reset
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  // Kick in
+  requestAnimationFrame(() => {
+    bar.style.transition = 'width 0.3s ease';
+    bar.style.width = '25%';
+  });
+
+  // Gradually progress while the next page is loading
+  let progress = 25;
+  clearInterval(loadBarTimer);
+  loadBarTimer = setInterval(() => {
+    progress = Math.min(progress + Math.random() * 15, 85);
+    bar.style.width = progress + '%';
+  }, 300);
+}
+
+function finishTopLoadBar() {
+  const bar = document.getElementById('page-load-bar');
+  if (!bar) return;
+  clearInterval(loadBarTimer);
+  bar.style.width = '100%';
+  setTimeout(() => {
+    bar.style.transition = 'width 0.2s ease';
+    bar.style.width = '0%';
+  }, 150);
 }
 
 // Update the most active accounts list

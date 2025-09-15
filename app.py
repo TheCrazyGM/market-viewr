@@ -804,11 +804,12 @@ def view(token):
     try:
         richlist, burned_balance = get_richlist(token)
     except RuntimeError:
-        return render_template(
-            "error_generic.html",
-            code="503 - Service Unavailable",
-            message="Richlist temporarily unavailable. Please try again later.",
-        ), 503
+        # Be resilient: show the page without richlist instead of failing with 503
+        app.logger.warning(
+            f"Richlist temporarily unavailable for {token}; rendering page without it.",
+        )
+        richlist = []
+        burned_balance = 0.0
 
     # Calculate burned percentage if supply is available
     burned_percentage = 0.0
