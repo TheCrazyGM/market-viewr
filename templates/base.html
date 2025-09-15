@@ -1,131 +1,131 @@
 <!doctype html>
 <html lang="en" data-bs-theme="light">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Market-Viewr{% endblock %}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Market-Viewr{% endblock %}</title>
   <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <!-- Bootstrap Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
   <!-- Plotly.js -->
-  <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
+    <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon" />
-</head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon" />
+  </head>
 
-<body>
+  <body>
   <!-- Top page loading bar -->
-  <div id="page-load-bar" aria-hidden="true"></div>
+    <div id="page-load-bar" aria-hidden="true"></div>
   <!-- Header -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
-    <div class="container">
-      <a class="navbar-brand" href="{{ url_for('index') }}">
-        <i class="bi bi-graph-up-arrow text-info me-2"></i>Market-Viewr
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item">
-            <a class="nav-link action-btn" href="{{ url_for('index') }}" data-action="index">
-              <i class="bi bi-list-ul me-1"></i> Token List
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://tools.crypto-dreamr.com" target="_blank">
-              <i class="bi bi-box-arrow-up-right me-1"></i> Crypto Dreamr Tools
-            </a>
-          </li>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+          <i class="bi bi-graph-up-arrow text-info me-2"></i>Market-Viewr
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link action-btn" href="{{ url_for('index') }}" data-action="index">
+                <i class="bi bi-list-ul me-1"></i> Token List
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://tools.crypto-dreamr.com" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Crypto Dreamr Tools
+              </a>
+            </li>
 
-          <li class="nav-item">
-            <a class="nav-link" href="https://beeswap.dcity.io" target="_blank">
-              <i class="bi bi-box-arrow-up-right me-1"></i> Bee Swap
-            </a>
-          </li>
-        </ul>
-        <div class="d-flex">
-          <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" id="themeToggle" />
-            <label class="form-check-label text-light" for="themeToggle">
-              <i class="bi bi-sun-fill" id="lightIcon"></i>
-              <i class="bi bi-moon-fill d-none" id="darkIcon"></i>
-            </label>
+            <li class="nav-item">
+              <a class="nav-link" href="https://beeswap.dcity.io" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Bee Swap
+              </a>
+            </li>
+          </ul>
+          <div class="d-flex">
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" type="checkbox" id="themeToggle" />
+              <label class="form-check-label text-light" for="themeToggle">
+                <i class="bi bi-sun-fill" id="lightIcon"></i>
+                <i class="bi bi-moon-fill d-none" id="darkIcon"></i>
+              </label>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </nav>
+    </nav>
 
   <!-- Main Content -->
-  <div class="container mt-4 mb-5">{% block content %}{% endblock %}</div>
+    <div class="container mt-4 mb-5">{% block content %}{% endblock %}</div>
 
   <!-- Footer -->
-  <footer class="footer py-3 bg-light fixed-bottom shadow-lg" id="appFooter">
-    <div class="container text-center">
-      <span class="text-muted">
-        <i class="bi bi-code-slash me-1"></i> with
-        <i class="bi bi-heart-fill text-danger mx-1"></i> by
-        <a href="https://peakd.com/@thecrazygm" target="_blank" class="text-decoration-none">thecrazygm</a>
-        <span class="mx-2">|</span>
-        <a href="https://tools.crypto-dreamr.com/give/mithril.donation/2/HBD/Buy%20a%20coffee" target="_blank"
-          class="text-decoration-none">
-          <i class="bi bi-cup-hot"></i> Buy us a coffee
-        </a>
-      </span>
-    </div>
-  </footer>
+    <footer class="footer py-3 bg-light fixed-bottom shadow-lg" id="appFooter">
+      <div class="container text-center">
+        <span class="text-muted">
+          <i class="bi bi-code-slash me-1"></i> with
+          <i class="bi bi-heart-fill text-danger mx-1"></i> by
+          <a href="https://peakd.com/@thecrazygm" target="_blank" class="text-decoration-none">thecrazygm</a>
+          <span class="mx-2">|</span>
+          <a href="https://tools.crypto-dreamr.com/give/mithril.donation/2/HBD/Buy%20a%20coffee" target="_blank"
+             class="text-decoration-none">
+            <i class="bi bi-cup-hot"></i> Buy us a coffee
+          </a>
+        </span>
+      </div>
+    </footer>
 
   <!-- Bootstrap 5 JS Bundle with Popper -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Theme Toggle JS -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const themeToggle = document.getElementById("themeToggle");
-      const lightIcon = document.getElementById("lightIcon");
-      const darkIcon = document.getElementById("darkIcon");
-      const htmlElement = document.documentElement;
-      const appFooter = document.getElementById("appFooter");
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const themeToggle = document.getElementById("themeToggle");
+        const lightIcon = document.getElementById("lightIcon");
+        const darkIcon = document.getElementById("darkIcon");
+        const htmlElement = document.documentElement;
+        const appFooter = document.getElementById("appFooter");
 
       // Check for saved theme preference
-      const savedTheme = localStorage.getItem("theme");
-      if (savedTheme === "dark") {
-        htmlElement.setAttribute("data-bs-theme", "dark");
-        themeToggle.checked = true;
-        updateIconsAndUI("dark");
-      }
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme === "dark") {
+          htmlElement.setAttribute("data-bs-theme", "dark");
+          themeToggle.checked = true;
+          updateIconsAndUI("dark");
+        }
 
       // Toggle theme on switch change
-      themeToggle.addEventListener("change", function () {
-        const newTheme = this.checked ? "dark" : "light";
-        htmlElement.setAttribute("data-bs-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
-        updateIconsAndUI(newTheme);
-      });
+        themeToggle.addEventListener("change", function () {
+          const newTheme = this.checked ? "dark" : "light";
+          htmlElement.setAttribute("data-bs-theme", newTheme);
+          localStorage.setItem("theme", newTheme);
+          updateIconsAndUI(newTheme);
+        });
 
       // Update UI based on current theme
-      function updateIconsAndUI(theme) {
+        function updateIconsAndUI(theme) {
         // Update icons
-        if (theme === "dark") {
-          lightIcon.classList.add("d-none");
-          darkIcon.classList.remove("d-none");
-          appFooter.classList.remove("bg-light");
-          appFooter.classList.add("bg-dark");
-        } else {
-          lightIcon.classList.remove("d-none");
-          darkIcon.classList.add("d-none");
-          appFooter.classList.remove("bg-dark");
-          appFooter.classList.add("bg-light");
+          if (theme === "dark") {
+            lightIcon.classList.add("d-none");
+            darkIcon.classList.remove("d-none");
+            appFooter.classList.remove("bg-light");
+            appFooter.classList.add("bg-dark");
+          } else {
+            lightIcon.classList.remove("d-none");
+            darkIcon.classList.add("d-none");
+            appFooter.classList.remove("bg-dark");
+            appFooter.classList.add("bg-light");
+          }
         }
-      }
-    });
-  </script>
+      });
+    </script>
   <!-- Custom JS -->
-  <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-  {% block scripts %}{% endblock %}
-</body>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
 
 </html>

@@ -3,142 +3,142 @@
 {% block title %}Market-Viewr - Token List{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h1>Hive-Engine Tokens</h1>
-</div>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Hive-Engine Tokens</h1>
+  </div>
 
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-coin me-2"></i>Available Tokens</h5>
-        <form action="{{ url_for('index') }}" method="get" class="input-group" style="max-width: 300px;">
-          <input type="text" name="q" id="tokenSearch" class="form-control" placeholder="Search tokens..."
-            value="{{ search_query }}" />
-          <button class="btn btn-primary" type="submit">
-            <i class="bi bi-search"></i>
-          </button>
-          {% if search_query %}
-          <a href="{{ url_for('index') }}" class="btn btn-light">
-            <i class="bi bi-x"></i>
-          </a>
-          {% endif %}
-        </form>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Icon</th>
-                <th>Symbol</th>
-                <th>Name</th>
-                <th>Total Supply</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tokenTableBody">
-              {% if tokens %}
-              {% for token in tokens %}
-              <tr class="token-row" data-symbol="{{ token.symbol | lower }}" data-name="{{ token.name | lower }}">
-                <td>
-                  {% set icon_url = token.metadata.icon if token.metadata and token.metadata.icon else None %}
-                  <img src="{{ url_for('static', filename='images/coin-placeholder.svg') }}" {% if icon_url
-                    %}data-src="{{ icon_url }}" {% endif %} alt="{{ token.symbol }} icon" class="img-fluid token-icon"
-                    loading="lazy" style="max-height: 30px; max-width: 30px;" />
-                </td>
-                <td>{{ token.symbol }}</td>
-                <td>{{ token.name }}</td>
-                <td>
-                  {{ token.supply if token.supply is string else (token.supply | float) | format(',.8f') }}
-                </td>
-                <td>
-                  <a href="{{ url_for('market', token=token.symbol) }}"
-                    class="btn btn-sm btn-outline-primary action-btn" data-token="{{ token.symbol }}"
-                    data-action="market"><i class="bi bi-graph-up-arrow me-1"></i>Market</a>
-                  <a href="{{ url_for('view', token=token.symbol) }}"
-                    class="btn btn-sm btn-outline-secondary action-btn" data-token="{{ token.symbol }}"
-                    data-action="info"><i class="bi bi-info-circle me-1"></i>Info</a>
-                </td>
-              </tr>
-              {% endfor %}
-              {% else %}
-              <tr>
-                <td colspan="5" class="text-center py-4">
-                  {% if search_query %}
-                  <div class="alert alert-info mb-0">
-                    <i class="bi bi-info-circle me-2"></i>No tokens found
-                    matching <strong>"{{ search_query }}"</strong>
-                    <a href="{{ url_for('index') }}" class="alert-link ms-2">Show all tokens</a>
-                  </div>
-                  {% else %}
-                  <div class="alert alert-warning mb-0">
-                    <i class="bi bi-exclamation-triangle me-2"></i>No
-                    tokens available
-                  </div>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endif %}
-            </tbody>
-          </table>
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-coin me-2"></i>Available Tokens</h5>
+          <form action="{{ url_for('index') }}" method="get" class="input-group" style="max-width: 300px;">
+            <input type="text" name="q" id="tokenSearch" class="form-control" placeholder="Search tokens..."
+                   value="{{ search_query }}" />
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-search"></i>
+            </button>
+            {% if search_query %}
+              <a href="{{ url_for('index') }}" class="btn btn-light">
+                <i class="bi bi-x"></i>
+              </a>
+            {% endif %}
+          </form>
         </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Icon</th>
+                  <th>Symbol</th>
+                  <th>Name</th>
+                  <th>Total Supply</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tokenTableBody">
+                {% if tokens %}
+                  {% for token in tokens %}
+                    <tr class="token-row" data-symbol="{{ token.symbol | lower }}" data-name="{{ token.name | lower }}">
+                      <td>
+                        {% set icon_url = token.metadata.icon if token.metadata and token.metadata.icon else None %}
+                        <img src="{{ url_for('static', filename='images/coin-placeholder.svg') }}" {% if icon_url
+                             %}data-src="{{ icon_url }}" {% endif %} alt="{{ token.symbol }} icon" class="img-fluid token-icon"
+                       loading="lazy" style="max-height: 30px; max-width: 30px;" />
+                  </td>
+                  <td>{{ token.symbol }}</td>
+                  <td>{{ token.name }}</td>
+                  <td>
+                    {{ token.supply if token.supply is string else (token.supply | float) | format(',.8f') }}
+                  </td>
+                  <td>
+                    <a href="{{ url_for('market', token=token.symbol) }}"
+                       class="btn btn-sm btn-outline-primary action-btn" data-token="{{ token.symbol }}"
+                       data-action="market"><i class="bi bi-graph-up-arrow me-1"></i>Market</a>
+                    <a href="{{ url_for('view', token=token.symbol) }}"
+                       class="btn btn-sm btn-outline-secondary action-btn" data-token="{{ token.symbol }}"
+                       data-action="info"><i class="bi bi-info-circle me-1"></i>Info</a>
+                  </td>
+                  </tr>
+                {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="5" class="text-center py-4">
+      {% if search_query %}
+        <div class="alert alert-info mb-0">
+          <i class="bi bi-info-circle me-2"></i>No tokens found
+          matching <strong>"{{ search_query }}"</strong>
+          <a href="{{ url_for('index') }}" class="alert-link ms-2">Show all tokens</a>
+        </div>
+      {% else %}
+        <div class="alert alert-warning mb-0">
+          <i class="bi bi-exclamation-triangle me-2"></i>No
+          tokens available
+        </div>
+      {% endif %}
+    </td>
+  </tr>
+{% endif %}
+</tbody>
+</table>
+</div>
         <!-- Pagination controls -->
-        {% if total_pages > 1 %}
-        <div class="d-flex justify-content-between align-items-center mt-4">
-          <div>
-            <p class="mb-0">
-              Showing
-              {{ ((page - 1) * per_page) + 1 }}-{% if page * per_page > total %}{{ total }}{% else %}{{ page * per_page
-              }}{% endif %}
-              of {{ total }} tokens
-            </p>
-          </div>
-          <nav aria-label="Token pagination">
-            <ul class="pagination mb-0">
+{% if total_pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center mt-4">
+    <div>
+      <p class="mb-0">
+        Showing
+        {{ ((page - 1) * per_page) + 1 }}-{% if page * per_page > total %}{{ total }}{% else %}{{ page * per_page
+          }}{% endif %}
+        of {{ total }} tokens
+      </p>
+    </div>
+    <nav aria-label="Token pagination">
+      <ul class="pagination mb-0">
               <!-- Previous page button -->
-              <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('index', page=page-1, q=search_query) if page > 1 else '#' }}"
-                  aria-label="Previous">
-                  <span aria-hidden="true">&laquo;</span>
-                </a>
-              </li>
+        <li class="page-item {% if page == 1 %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('index', page=page-1, q=search_query) if page > 1 else '#' }}"
+             aria-label="Previous">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
 
               <!-- Page numbers -->
-              {% set start_page = [page - 2, 1] | max %}
-              {% set end_page = [start_page + 4, total_pages] | min %}
-              {% if end_page - start_page < 4 %} {% set start_page=[end_page - 4, 1] | max %} {% endif %} {% for p in
-                range(start_page, end_page + 1) %} <li class="page-item {% if p == page %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('index', page=p, q=search_query) }}">{{ p }}</a>
-                </li>
-                {% endfor %}
+        {% set start_page = [page - 2, 1] | max %}
+        {% set end_page = [start_page + 4, total_pages] | min %}
+        {% if end_page - start_page < 4 %} {% set start_page=[end_page - 4, 1] | max %} {% endif %} {% for p in
+        range(start_page, end_page + 1) %} <li class="page-item {% if p == page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('index', page=p, q=search_query) }}">{{ p }}</a>
+        </li>
+{% endfor %}
 
                 <!-- Next page button -->
-                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-                  <a class="page-link"
-                    href="{{ url_for('index', page=page+1, q=search_query) if page < total_pages else '#' }}"
-                    aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                  </a>
-                </li>
-            </ul>
-          </nav>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+<li class="page-item {% if page == total_pages %}disabled{% endif %}">
+  <a class="page-link"
+     href="{{ url_for('index', page=page+1, q=search_query) if page < total_pages else '#' }}"
+     aria-label="Next">
+    <span aria-hidden="true">&raquo;</span>
+  </a>
+</li>
+</ul>
+</nav>
+</div>
+{% endif %}
+</div>
+</div>
+</div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
     // Focus the search input when the page loads if it's empty
-    const searchInput = document.getElementById("tokenSearch");
-    if (searchInput && searchInput.value === "") {
-      searchInput.focus();
-    }
-  });
-</script>
+      const searchInput = document.getElementById("tokenSearch");
+      if (searchInput && searchInput.value === "") {
+        searchInput.focus();
+      }
+    });
+  </script>
 {% endblock %}
