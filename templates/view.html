@@ -46,8 +46,7 @@
                 <strong>Website:</strong>
                 <a href="{{ token_info.metadata.url }}" target="_blank"
                 >{{ token_info.metadata.url }}</a
-                  >
-                </p>
+                  ></p>
             {% endif %}
 
             {% if token_info.metadata.description %}
@@ -57,14 +56,15 @@
               </p>
             {% endif %}
 
-            {% if token_info.metadata.icon %}
-              <img
-                src="{{ token_info.metadata.icon }}"
-                alt="{{ token_info.symbol }} icon"
-                class="img-fluid mt-3"
-                style="max-height: 100px;"
-              />
-            {% endif %}
+            {% set icon_url = token_info.metadata.icon if token_info.metadata and token_info.metadata.icon else None %}
+            <img
+              src="{{ url_for('static', filename='images/coin-placeholder.svg') }}"
+              {% if icon_url %}data-src="{{ icon_url }}"{% endif %}
+              alt="{{ token_info.symbol }} icon"
+              class="img-fluid mt-3 token-icon"
+              loading="lazy"
+              style="max-height: 100px;"
+            />
           {% endif %}
         </div>
         <div class="card-footer">

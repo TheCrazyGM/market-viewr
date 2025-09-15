@@ -3,7 +3,6 @@ import io
 import json
 import logging
 import random
-import re
 import string
 import time
 from datetime import datetime, timezone
@@ -123,7 +122,9 @@ def get_engine_nodes(max_nodes: int = 10, timeout: int = 3):
             resp.raise_for_status()
             data = resp.json()
             meta_str = (
-                data.get("result", {}).get("accounts", [{}])[0].get("json_metadata", "{}")
+                data.get("result", {})
+                .get("accounts", [{}])[0]
+                .get("json_metadata", "{}")
             )
             app.logger.debug(f"Raw json_metadata from {hive_node}: {meta_str[:200]}")
             meta = json.loads(meta_str) if meta_str else {}
@@ -133,9 +134,7 @@ def get_engine_nodes(max_nodes: int = 10, timeout: int = 3):
                 app.logger.info(f"Successfully retrieved node list from {hive_node}")
                 break  # Successfully retrieved node list
         except Exception as e:
-            app.logger.warning(
-                f"Failed to fetch node list from {hive_node}: {e}"
-            )
+            app.logger.warning(f"Failed to fetch node list from {hive_node}: {e}")
             continue  # Try the next Hive API node
 
     # If all attempts failed, nodes will remain an empty list
@@ -186,6 +185,7 @@ nodes = get_engine_nodes()
 
 # Helper factories that pick a fresh random node each time
 
+
 def get_he_api():
     """Return a new Api instance pointing at a random healthy Hive-Engine node."""
     return Api(
@@ -218,24 +218,27 @@ he_market = _LazyProxy(get_he_market)
 
 # Validate if URL is an image
 def is_valid_image_url(url):
-    """Check if a URL points to a valid image."""
+    """Lightweight validation that the URL looks safe for an image fetch.
+
+    Many Hive/remote icon URLs omit file extensions or use CDN paths with query
+    params. We only enforce scheme+host and block obvious script/data URIs.
+    """
     if not url:
         return False
 
-    # Basic URL validation
     try:
-        result = urlparse(url)
-        if not all([result.scheme, result.netloc]):
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
             return False
 
-        # Check for common image extensions
-        if not re.search(r"\.(jpg|jpeg|png|gif|svg|webp)$", url.lower()):
+        lowered = url.lower()
+        # Block obvious script injection vectors
+        if lowered.startswith("javascript:") or lowered.startswith("data:"):
+            return False
+        if "<script" in lowered or "onerror=" in lowered:
             return False
 
-        # Check for potential script injection
-        if re.search(r"<script|javascript:|data:|onerror=", url.lower()):
-            return False
-
+        # Allow without enforcing a file extension; browsers will handle errors
         return True
     except Exception:
         return False
@@ -438,33 +441,34 @@ def get_trade_history(symbol, limit=100, days=30):
 
 # Routes
 
-@app.route('/health', methods=['GET'])
+
+@app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint to verify the application and its dependencies are running."""
     status = {
-        'status': 'ok',
-        'timestamp': datetime.now(timezone.utc).isoformat(),
-        'dependencies': {}
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "dependencies": {},
     }
-    
+
     # Check Redis connection
     try:
-        cache.set('healthcheck', 'ok', timeout=5)
-        status['dependencies']['redis'] = 'ok'
+        cache.set("healthcheck", "ok", timeout=5)
+        status["dependencies"]["redis"] = "ok"
     except Exception as e:
-        status['status'] = 'error'
-        status['dependencies']['redis'] = f'error: {str(e)}'
-    
+        status["status"] = "error"
+        status["dependencies"]["redis"] = f"error: {str(e)}"
+
     # Check Hive-Engine API connection using a simple and valid token query
     try:
         # Fetch the first token as a health test
         he_api.find_one("tokens", "tokens", query={})
-        status['dependencies']['hive_engine'] = 'ok'
+        status["dependencies"]["hive_engine"] = "ok"
     except Exception as e:
-        status['status'] = 'error'
-        status['dependencies']['hive_engine'] = f'error: {str(e)}'
-    
-    return status, 200 if status['status'] == 'ok' else 503
+        status["status"] = "error"
+        status["dependencies"]["hive_engine"] = f"error: {str(e)}"
+
+    return status, 200 if status["status"] == "ok" else 503
 
 
 @app.route("/robots.txt")

@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (table.id === "buy-book-table" || table.id === "sell-book-table") {
       return;
     }
-
     const headers = table.querySelectorAll("th");
     headers.forEach((header, index) => {
       header.addEventListener("click", function () {
@@ -42,6 +41,9 @@ document.addEventListener("DOMContentLoaded", function () {
   if (document.getElementById("candlestick-chart")) {
     initMarketPage();
   }
+
+  // Initialize lazy loading for token icons
+  initLazyTokenIcons();
 });
 
 // Function to sort tables
@@ -289,6 +291,61 @@ function ensureTableFormatting() {
       }
     },
   );
+}
+
+// Lazy-load token icons with timeout and error fallback
+function initLazyTokenIcons() {
+  const images = document.querySelectorAll("img.token-icon");
+  if (!images || images.length === 0) return;
+
+  const placeholder = "/static/images/coin-placeholder.svg";
+
+  const loadImg = (img) => {
+    const actualSrc = img.getAttribute("data-src");
+    if (!actualSrc) return; // Keep placeholder if no real src
+
+    // Prevent duplicate loads
+    if (img.dataset.loaded === "true") return;
+    img.dataset.loaded = "true";
+
+    // Fallback on error
+    img.onerror = function () {
+      if (img.src !== placeholder) img.src = placeholder;
+    };
+
+    // Short timeout fallback
+    const TIMEOUT_MS = 2500;
+    const timer = setTimeout(() => {
+      if (img.src !== placeholder) img.src = placeholder;
+    }, TIMEOUT_MS);
+
+    img.onload = function () {
+      clearTimeout(timer);
+    };
+
+    // Trigger actual load
+    img.src = actualSrc;
+  };
+
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            loadImg(img);
+            obs.unobserve(img);
+          }
+        });
+      },
+      { root: null, rootMargin: "200px", threshold: 0.01 },
+    );
+
+    images.forEach((img) => observer.observe(img));
+  } else {
+    // Fallback: load immediately
+    images.forEach((img) => loadImg(img));
+  }
 }
 
 // Update the most active accounts list

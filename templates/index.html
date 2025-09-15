@@ -59,16 +59,15 @@
                       data-name="{{ token.name | lower }}"
                     >
                       <td>
-                        {% if token.metadata and token.metadata.icon %}
-                          <img
-                            src="{{ token.metadata.icon }}"
-                            alt="{{ token.symbol }} icon"
-                            class="img-fluid"
-                            style="max-height: 30px; max-width: 30px;"
-                          />
-                        {% else %}
-                          <span class="text-muted">No icon</span>
-                        {% endif %}
+                        {% set icon_url = token.metadata.icon if token.metadata and token.metadata.icon else None %}
+                        <img
+                          src="{{ url_for('static', filename='images/coin-placeholder.svg') }}"
+                          {% if icon_url %}data-src="{{ icon_url }}"{% endif %}
+                          alt="{{ token.symbol }} icon"
+                          class="img-fluid token-icon"
+                          loading="lazy"
+                          style="max-height: 30px; max-width: 30px;"
+                        />
                       </td>
                       <td>{{ token.symbol }}</td>
                       <td>{{ token.name }}</td>
