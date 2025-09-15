@@ -7,7 +7,9 @@
     <h1>{{ token }} Information</h1>
     <a
       href="{{ url_for('market', token=token) }}"
-      class="btn btn-outline-primary"
+      class="btn btn-outline-primary action-btn"
+      data-action="market"
+      data-token="{{ token }}"
     >
       <i class="bi bi-graph-up-arrow me-1"></i> View Market Data
     </a>

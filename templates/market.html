@@ -13,7 +13,9 @@
     <h1>{{ token }} Market Data</h1>
     <a
       href="{{ url_for('view', token=token) }}"
-      class="btn btn-outline-primary"
+      class="btn btn-outline-primary action-btn"
+      data-action="info"
+      data-token="{{ token }}"
     >
       <i class="bi bi-info-circle me-1"></i> View Token Info
     </a>
