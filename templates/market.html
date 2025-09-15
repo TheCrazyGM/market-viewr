@@ -46,14 +46,15 @@
                   >
                 </p>
             {% endif %}
-            {% if token_info.metadata.icon %}
-              <img
-                src="{{ token_info.metadata.icon }}"
-                alt="{{ token_info.symbol }} icon"
-                class="img-fluid"
-                style="max-height: 100px;"
-              />
-            {% endif %}
+            {% set icon_url = token_info.metadata.icon if token_info.metadata and token_info.metadata.icon else None %}
+            <img
+              src="{{ url_for('static', filename='images/coin-placeholder.svg') }}"
+              {% if icon_url %}data-src="{{ icon_url }}"{% endif %}
+              alt="{{ token_info.symbol }} icon"
+              class="img-fluid token-icon"
+              loading="lazy"
+              style="max-height: 100px;"
+            />
           {% endif %}
         </div>
         <div class="card-footer">
