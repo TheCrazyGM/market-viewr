@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 import io
 import json
 import logging
+import re
 import random
 import string
 import time
@@ -81,10 +82,10 @@ def handle_exception(e):
 def timestamp_to_date(timestamp):
     """
     Convert a Unix timestamp (seconds since the epoch) to a local time string in the format "YYYY-MM-DD HH:MM:SS".
-    
+
     Parameters:
         timestamp (int | float): Seconds since the Unix epoch.
-    
+
     Returns:
         str: Formatted local date/time string "YYYY-MM-DD HH:MM:SS".
     """
@@ -95,12 +96,12 @@ def timestamp_to_date(timestamp):
 def fmt_number(value, spec=",.4f"):
     """
     Format a value as a number using a Python format specification, safely falling back if conversion fails.
-    
+
     Converts the input to float and applies the given format spec (default: ",.4f"). If the value cannot be converted to a float, the original value is returned unchanged.
-    
+
     Parameters:
         spec (str): Python format specification to apply (e.g., ",.2f", ".0f"). Default is ",.4f".
-    
+
     Returns:
         str | Any: The formatted numeric string on success, or the original input if not convertible.
     """
@@ -340,16 +341,16 @@ def get_market_data(symbol, days=30):
     # Calculate timestamp in milliseconds
     """
     Fetch recent market history for a token symbol from the Hive Engine history API.
-    
+
     Calculates a start timestamp `days` days before now (in milliseconds) and requests
     market history for `symbol` from the configured HE_HISTORY_API endpoint. On a
     successful HTTP 200 response returns the parsed JSON data; on any other status
     returns an empty list.
-    
+
     Parameters:
         symbol (str): Token symbol to query (e.g., "TOK").
         days (int): Number of days of history to request (default: 30).
-    
+
     Returns:
         list|dict: Parsed JSON response from the history API on success, otherwise an empty list.
     """
@@ -372,19 +373,21 @@ def get_market_data(symbol, days=30):
 def get_lp_pools_for_token(token: str) -> list[dict]:
     """
     Return all liquidity pools where the given token appears as either the base or the quote asset.
-    
+
     Searches the marketpools.pools table for tokenPair values that start with "TOKEN:" or end with ":TOKEN" and returns the matching pool records (each record is a dict with fields such as tokenPair, baseQuantity, quoteQuantity, basePrice, quotePrice, totalShares, etc.). Returns an empty list if no pools are found or on error.
-    
+
     Notes:
     - Token matching is literal and case-sensitive.
     - The function returns a list of dicts; callers should handle an empty list as "no pools".
     """
     try:
+        # Escape special regex characters in the token
+        escaped_token = re.escape(token)
         # Match either "TOKEN:*" or "*:TOKEN" on tokenPair
         query = {
             "$or": [
-                {"tokenPair": {"$regex": f"^{token}:"}},
-                {"tokenPair": {"$regex": f":{token}$"}},
+                {"tokenPair": {"$regex": f"^{escaped_token}:"}},
+                {"tokenPair": {"$regex": f":{escaped_token}$"}},
             ]
         }
         pools = he_api.find("marketpools", "pools", query=query, limit=1000)
@@ -398,7 +401,7 @@ def get_lp_pools_for_token(token: str) -> list[dict]:
 def get_lp_pool(token_pair: str) -> dict | None:
     """
     Return the liquidity pool record for a given token pair (e.g. "TOKEN:SWAP.HIVE") or None if not found.
-    
+
     This normalizes RPC responses that sometimes return a list for a single result (the first item is used).
     Returns None if the pool does not exist or if an error occurs while fetching.
     """
@@ -417,13 +420,13 @@ def get_lp_pool(token_pair: str) -> dict | None:
 def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
     """
     Return the top liquidity provider positions for a given liquidity pool token pair.
-    
+
     Retrieves entries from the `marketpools.liquidityPositions` table for `token_pair` and returns them sorted by `shares` in descending order. Returns an empty list if no positions are found or on error (errors are logged).
-    
+
     Parameters:
         token_pair (str): Token pair identifier in the form "BASE:QUOTE".
         limit (int): Maximum number of positions to return (default 200).
-    
+
     Returns:
         list[dict]: A list of position records (possibly empty).
     """
@@ -446,21 +449,21 @@ def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
 def get_richlist(symbol):
     """
     Return the token rich list and total burned balance for a given symbol.
-    
+
     Builds a list of holders for `symbol`, where each holder dict is augmented with a numeric
     `total` field equal to the sum of their `balance` and `stake`. Accounts are deduplicated
     (by account name, keeping the first seen), and the final list is sorted by `total`
     descending. Entries with account == "null" are treated as the burned balance (returned
     separately as a float). Numeric parsing is tolerant of missing or malformed values.
-    
+
     Parameters:
         symbol (str): Token symbol to query.
-    
+
     Returns:
         tuple[list[dict], float]: (richlist, burned_balance) where `richlist` is a list of
         holder records (each includes a computed `total`) and `burned_balance` is the
         burned token amount for the queried symbol.
-    
+
     Raises:
         RuntimeError: If the underlying Hive-Engine RPC requests time out or fail.
     """
@@ -624,15 +627,15 @@ def robots_txt():
 def index(page=1):
     """
     Render the homepage with token listings, optional search, and pagination.
-    
+
     Reads the optional query parameter "q" (case-insensitive) from the request to filter tokens by symbol or name.
     Parses each token's JSON `metadata` string (if present) and nulls any invalid `icon` URLs via `is_valid_image_url`.
     Paginates results at 100 tokens per page and renders "index.html" with the following context:
     `tokens`, `page`, `per_page`, `total`, `total_pages`, and `search_query`.
-    
+
     Parameters:
         page (int): 1-based page number to display (defaults to 1).
-    
+
     Returns:
         A Flask response rendering the "index.html" template with the paginated token data.
     """
@@ -695,17 +698,17 @@ def index(page=1):
 def lp_list(token: str):
     """
     Render a page listing liquidity pools that include the given token as base or quote.
-    
+
     Looks up token metadata and fetches matching liquidity pools, enriches each pool dict with `base` and `quote`
     derived from the pool's `tokenPair`, and returns a rendered 'lp_list.html' template with `token`, `token_info`,
     and the enriched `pools`.
-    
+
     Parameters:
         token (str): Token symbol to display pools for.
-    
+
     Returns:
         A Flask response rendering 'lp_list.html'.
-    
+
     Raises:
         Aborts with HTTP 404 if the token is not found.
     """
@@ -749,17 +752,17 @@ def lp_list(token: str):
 def lp_detail(base: str, quote: str):
     """
     Render the liquidity pool detail page for a given BASE:QUOTE pool.
-    
+
     Looks up the pool for the provided base and quote symbols. If the exact
     pair is not found, the reversed pair (QUOTE:BASE) is tried; if neither
     exists the request is aborted with a 404. Retrieves up to 200 top LP
     positions for the resolved pair and renders the "lp_detail.html" template
     with `token_pair`, `pool`, and `positions`.
-    
+
     Parameters:
         base (str): Base token symbol from the URL.
         quote (str): Quote token symbol from the URL.
-    
+
     Returns:
         A Flask response rendering the pool detail template (HTTP 200) or aborts with 404 if the pool is not found.
     """
@@ -791,18 +794,18 @@ def lp_detail(base: str, quote: str):
 def api_chart(token, timeframe):
     """
     Return chart data (Plotly JSON) for a token's market history for a given timeframe.
-    
+
     Parameters:
         token (str): Token symbol to fetch market data for.
         timeframe (str): Either "all" to request the full history or an integer number of days
             (as a string). Non-integer values default to 30 days.
-    
+
     Returns:
         tuple[str, int, dict]: A 3-tuple compatible with Flask responses:
             - body: JSON string containing a Plotly Figure (generated with PlotlyJSONEncoder).
             - status: HTTP status code (200 on success, 404 if the token is invalid).
             - headers: Response headers (includes "Content-Type": "application/json").
-    
+
     Behavior:
         - Validates the token via get_token_info; returns a 404 JSON error if the token is invalid.
         - Interprets `timeframe` ("all" => full history; integer => last N days; invalid => 30).
