@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Market-Viewr - {{ token }} Liquidity Pools{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ token }} Liquidity Pools</h1>
+    <div class="btn-group">
+      <a href="{{ url_for('market', token=token) }}" class="btn btn-outline-primary action-btn">
+        <i class="bi bi-graph-up-arrow me-1"></i> Market
+      </a>
+      <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-secondary action-btn">
+        <i class="bi bi-info-circle me-1"></i> Info
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Token Info Card -->
+    <div class="col-12 col-md-4 col-lg-3 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-tag-fill me-2"></i>{{ token_info.name }} ({{ token_info.symbol }})</h5>
+        </div>
+        <div class="card-body">
+          <p>
+            <strong>Total Supply:</strong>
+            {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | fmt(',.8f') }}
+          </p>
+          <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
+          {% if token_info.metadata %}
+            {% if token_info.metadata.url %}
+              <p><strong>Website:</strong> <a href="{{ token_info.metadata.url }}" target="_blank">{{ token_info.metadata.url }}</a></p>
+            {% endif %}
+            {% set icon_url = token_info.metadata.icon if token_info.metadata and token_info.metadata.icon else None %}
+            <img src="{{ url_for('static', filename='images/coin-placeholder.svg') }}" {% if icon_url %}data-src="{{ icon_url }}" {% endif %}
+                 alt="{{ token_info.symbol }} icon" class="img-fluid token-icon" loading="lazy" style="max-height: 100px;" />
+          {% endif %}
+        </div>
+        <div class="card-footer">
+          <small class="text-muted">Powered by Hive-Engine</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pools List -->
+    <div class="col-12 col-md-8 col-lg-9 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-droplet-half me-2"></i>Available Liquidity Pools</h5>
+        </div>
+        <div class="card-body">
+          {% if pools and pools|length > 0 %}
+            <div class="table-responsive">
+              <table class="table table-hover table-sm align-middle" id="lp-pools-table">
+                <thead>
+                  <tr>
+                    <th>Pair</th>
+                    <th class="number-cell text-end">Base</th>
+                    <th class="number-cell text-end">Quote</th>
+                    <th class="number-cell text-end">Price</th>
+                    <th class="number-cell text-end d-none d-lg-table-cell">Shares</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in pools %}
+                    <tr>
+                      <td><strong>{{ p.base }}</strong>:<strong>{{ p.quote }}</strong></td>
+                      <td class="number-cell text-end text-nowrap" title="Base reserve">{{ (p.baseQuantity | default(0) | float) | fmt(',.4f') }}</td>
+                      <td class="number-cell text-end text-nowrap" title="Quote reserve">{{ (p.quoteQuantity | default(0) | float) | fmt(',.4f') }}</td>
+                      <td class="number-cell text-end text-nowrap price-column text-success fw-bold" title="{{ p.base }} per {{ p.quote }}">{{ (p.basePrice | default(0) | float) | fmt(',.4f') }}</td>
+                      <td class="number-cell text-end text-nowrap d-none d-lg-table-cell">{{ (p.totalShares | default(0) | float) | fmt(',.4f') }}</td>
+                      <td>
+                        <a href="{{ url_for('lp_detail', base=p.base, quote=p.quote) }}" class="btn btn-sm btn-outline-warning action-btn">
+                          <i class="bi bi-droplet-half me-1"></i> View Pool
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info mb-0">
+              <i class="bi bi-info-circle me-2"></i>No liquidity pools found for {{ token }}.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    // Rely on global sorter in static/js/scripts.js to bind click handlers.
+    // If a default sort is needed, we can trigger it here, e.g.:
+    // const table = document.getElementById('lp-pools-table');
+    // if (table) sortTable(table, 3, 'desc'); // example: sort by Price
+    });
+  </script>
+{% endblock %}
