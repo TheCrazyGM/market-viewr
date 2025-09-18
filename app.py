@@ -78,17 +78,30 @@ def handle_exception(e):
 # Custom Jinja2 filter for formatting timestamps
 @app.template_filter("timestamp_to_date")
 def timestamp_to_date(timestamp):
-    """Convert a Unix timestamp to a formatted date string."""
+    """
+    Convert a Unix timestamp (seconds since the epoch) to a local time string in the format "YYYY-MM-DD HH:MM:SS".
+    
+    Parameters:
+        timestamp (int | float): Seconds since the Unix epoch.
+    
+    Returns:
+        str: Formatted local date/time string "YYYY-MM-DD HH:MM:SS".
+    """
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
 @app.template_filter("fmt")
 def fmt_number(value, spec=",.4f"):
-    """Safely format numeric values using a Python format spec.
-
-    Examples:
-    - {{ 1234.5678 | fmt(',.2f') }} -> '1,234.57'
-    - {{ '42' | fmt(',.0f') }} -> '42'
+    """
+    Format a value as a number using a Python format specification, safely falling back if conversion fails.
+    
+    Converts the input to float and applies the given format spec (default: ",.4f"). If the value cannot be converted to a float, the original value is returned unchanged.
+    
+    Parameters:
+        spec (str): Python format specification to apply (e.g., ",.2f", ".0f"). Default is ",.4f".
+    
+    Returns:
+        str | Any: The formatted numeric string on success, or the original input if not convertible.
     """
     try:
         fval = float(value)
@@ -324,6 +337,21 @@ def get_token_info(token):
 # Get token market data
 def get_market_data(symbol, days=30):
     # Calculate timestamp in milliseconds
+    """
+    Fetch recent market history for a token symbol from the Hive Engine history API.
+    
+    Calculates a start timestamp `days` days before now (in milliseconds) and requests
+    market history for `symbol` from the configured HE_HISTORY_API endpoint. On a
+    successful HTTP 200 response returns the parsed JSON data; on any other status
+    returns an empty list.
+    
+    Parameters:
+        symbol (str): Token symbol to query (e.g., "TOK").
+        days (int): Number of days of history to request (default: 30).
+    
+    Returns:
+        list|dict: Parsed JSON response from the history API on success, otherwise an empty list.
+    """
     timestamp_start = int((datetime.now().timestamp() - days * 24 * 60 * 60) * 1000)
     url = f"{HE_HISTORY_API}/marketHistory?symbol={symbol}&timestampStart={timestamp_start}"
 
@@ -340,35 +368,39 @@ def get_market_data(symbol, days=30):
 
 
 @cache.memoize(timeout=600)
-@cache.memoize(timeout=600)
 def get_lp_pools_for_token(token: str) -> list[dict]:
-    """Return all liquidity pools where the token participates as base or quote.
-
-    Contract: marketpools
-    Table: pools
-    Fields: tokenPair (format "BASE:QUOTE"), baseQuantity, quoteQuantity, basePrice, quotePrice, totalShares, etc.
+    """
+    Return all liquidity pools where the given token appears as either the base or the quote asset.
+    
+    Searches the marketpools.pools table for tokenPair values that start with "TOKEN:" or end with ":TOKEN" and returns the matching pool records (each record is a dict with fields such as tokenPair, baseQuantity, quoteQuantity, basePrice, quotePrice, totalShares, etc.). Returns an empty list if no pools are found or on error.
+    
+    Notes:
+    - Token matching is literal and case-sensitive.
+    - The function returns a list of dicts; callers should handle an empty list as "no pools".
     """
     try:
-        # Match either "TOKEN:*" or "*:TOKEN" on tokenPair (escape metachars)
-        import re
-        token_u = str(token).upper().strip()
-        pattern_base = f"^{re.escape(token_u)}:"
-        pattern_quote = f":{re.escape(token_u)}$"
+        # Match either "TOKEN:*" or "*:TOKEN" on tokenPair
         query = {
             "$or": [
-                {"tokenPair": {"$regex": pattern_base}},
-                {"tokenPair": {"$regex": pattern_quote}},
+                {"tokenPair": {"$regex": f"^{token}:"}},
+                {"tokenPair": {"$regex": f":{token}$"}},
             ]
         }
         pools = he_api.find("marketpools", "pools", query=query, limit=1000)
         return pools or []
     except Exception as e:
-        app.logger.exception(f"Error fetching LP pools for {token}: {e}")
+        app.logger.error(f"Error fetching LP pools for {token}: {e}")
         return []
+
 
 @cache.memoize(timeout=600)
 def get_lp_pool(token_pair: str) -> dict | None:
-    """Return a specific liquidity pool by tokenPair (e.g., "TOKEN:SWAP.HIVE")."""
+    """
+    Return the liquidity pool record for a given token pair (e.g. "TOKEN:SWAP.HIVE") or None if not found.
+    
+    This normalizes RPC responses that sometimes return a list for a single result (the first item is used).
+    Returns None if the pool does not exist or if an error occurs while fetching.
+    """
     try:
         pool = he_api.find_one("marketpools", "pools", query={"tokenPair": token_pair})
         # Some RPCs may return list for find_one, normalize
@@ -382,7 +414,18 @@ def get_lp_pool(token_pair: str) -> dict | None:
 
 @cache.memoize(timeout=600)
 def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
-    """Return top LP positions (liquidityPositions table) for a tokenPair sorted by shares desc."""
+    """
+    Return the top liquidity provider positions for a given liquidity pool token pair.
+    
+    Retrieves entries from the `marketpools.liquidityPositions` table for `token_pair` and returns them sorted by `shares` in descending order. Returns an empty list if no positions are found or on error (errors are logged).
+    
+    Parameters:
+        token_pair (str): Token pair identifier in the form "BASE:QUOTE".
+        limit (int): Maximum number of positions to return (default 200).
+    
+    Returns:
+        list[dict]: A list of position records (possibly empty).
+    """
     try:
         positions = he_api.find(
             "marketpools",
@@ -400,7 +443,26 @@ def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
 # Get token richlist
 @cache.memoize(timeout=900)
 def get_richlist(symbol):
-    """Return richlist and burned balance with retry-safe RPC and caching."""
+    """
+    Return the token rich list and total burned balance for a given symbol.
+    
+    Builds a list of holders for `symbol`, where each holder dict is augmented with a numeric
+    `total` field equal to the sum of their `balance` and `stake`. Accounts are deduplicated
+    (by account name, keeping the first seen), and the final list is sorted by `total`
+    descending. Entries with account == "null" are treated as the burned balance (returned
+    separately as a float). Numeric parsing is tolerant of missing or malformed values.
+    
+    Parameters:
+        symbol (str): Token symbol to query.
+    
+    Returns:
+        tuple[list[dict], float]: (richlist, burned_balance) where `richlist` is a list of
+        holder records (each includes a computed `total`) and `burned_balance` is the
+        burned token amount for the queried symbol.
+    
+    Raises:
+        RuntimeError: If the underlying Hive-Engine RPC requests time out or fail.
+    """
     richlist: list[dict] = []
     burned_balance = 0.0
     page_size = 1000  # Hive-Engine max per request
@@ -559,7 +621,20 @@ def robots_txt():
 @app.route("/page/<int:page>")
 @cache.cached(timeout=3600, query_string=True)
 def index(page=1):
-    """Display the homepage with a list of all tokens with pagination and search."""
+    """
+    Render the homepage with token listings, optional search, and pagination.
+    
+    Reads the optional query parameter "q" (case-insensitive) from the request to filter tokens by symbol or name.
+    Parses each token's JSON `metadata` string (if present) and nulls any invalid `icon` URLs via `is_valid_image_url`.
+    Paginates results at 100 tokens per page and renders "index.html" with the following context:
+    `tokens`, `page`, `per_page`, `total`, `total_pages`, and `search_query`.
+    
+    Parameters:
+        page (int): 1-based page number to display (defaults to 1).
+    
+    Returns:
+        A Flask response rendering the "index.html" template with the paginated token data.
+    """
     # Get search query from request args
     search_query = request.args.get("q", "").lower()
 
@@ -617,7 +692,22 @@ def index(page=1):
 @app.route("/lp/<token>")
 @cache.cached(timeout=300)
 def lp_list(token: str):
-    """List available liquidity pools for a given token (participates as base or quote)."""
+    """
+    Render a page listing liquidity pools that include the given token as base or quote.
+    
+    Looks up token metadata and fetches matching liquidity pools, enriches each pool dict with `base` and `quote`
+    derived from the pool's `tokenPair`, and returns a rendered 'lp_list.html' template with `token`, `token_info`,
+    and the enriched `pools`.
+    
+    Parameters:
+        token (str): Token symbol to display pools for.
+    
+    Returns:
+        A Flask response rendering 'lp_list.html'.
+    
+    Raises:
+        Aborts with HTTP 404 if the token is not found.
+    """
     token_info = get_token_info(token)
     if not token_info:
         abort(404)
@@ -648,7 +738,22 @@ def lp_list(token: str):
 @app.route("/lp/<base>/<quote>")
 @cache.cached(timeout=300)
 def lp_detail(base: str, quote: str):
-    """Show detailed information for a specific liquidity pool BASE:QUOTE."""
+    """
+    Render the liquidity pool detail page for a given BASE:QUOTE pool.
+    
+    Looks up the pool for the provided base and quote symbols. If the exact
+    pair is not found, the reversed pair (QUOTE:BASE) is tried; if neither
+    exists the request is aborted with a 404. Retrieves up to 200 top LP
+    positions for the resolved pair and renders the "lp_detail.html" template
+    with `token_pair`, `pool`, and `positions`.
+    
+    Parameters:
+        base (str): Base token symbol from the URL.
+        quote (str): Quote token symbol from the URL.
+    
+    Returns:
+        A Flask response rendering the pool detail template (HTTP 200) or aborts with 404 if the pool is not found.
+    """
     token_pair = f"{base}:{quote}"
     pool = get_lp_pool(token_pair)
     if not pool:
@@ -673,7 +778,27 @@ def lp_detail(base: str, quote: str):
 
 @app.route("/api/chart/<token>/<timeframe>")
 def api_chart(token, timeframe):
-    """API endpoint that returns chart data for a specific token with given timeframe."""
+    """
+    Return chart data (Plotly JSON) for a token's market history for a given timeframe.
+    
+    Parameters:
+        token (str): Token symbol to fetch market data for.
+        timeframe (str): Either "all" to request the full history or an integer number of days
+            (as a string). Non-integer values default to 30 days.
+    
+    Returns:
+        tuple[str, int, dict]: A 3-tuple compatible with Flask responses:
+            - body: JSON string containing a Plotly Figure (generated with PlotlyJSONEncoder).
+            - status: HTTP status code (200 on success, 404 if the token is invalid).
+            - headers: Response headers (includes "Content-Type": "application/json").
+    
+    Behavior:
+        - Validates the token via get_token_info; returns a 404 JSON error if the token is invalid.
+        - Interprets `timeframe` ("all" => full history; integer => last N days; invalid => 30).
+        - Fetches market data and builds a candlestick Plotly figure; if no market data exists,
+          returns a placeholder figure indicating "No Data Available".
+        - On unexpected errors returns a Plotly figure containing an error annotation (HTTP 200).
+    """
     try:
         # Validate token first
         token_info = get_token_info(token)
