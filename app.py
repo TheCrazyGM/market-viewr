@@ -1,21 +1,22 @@
 import csv
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 import io
 import json
 import logging
 import random
 import string
 import time
-from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-import pandas as pd
-import plotly
-import plotly.graph_objects as go
-import requests
 from flask import Flask, Response, abort, redirect, render_template, request, url_for
 from flask_caching import Cache
 from nectarengine.api import Api
 from nectarengine.market import Market
+import pandas as pd
+import plotly
+import plotly.graph_objects as go
+import requests
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 from werkzeug.exceptions import HTTPException
@@ -104,9 +105,9 @@ def fmt_number(value, spec=",.4f"):
         str | Any: The formatted numeric string on success, or the original input if not convertible.
     """
     try:
-        fval = float(value)
+        fval = Decimal(str(value))
         return format(fval, spec)
-    except Exception:
+    except (InvalidOperation, ValueError, TypeError):
         # Return original if not convertible
         return value
 
@@ -726,6 +727,14 @@ def lp_list(token: str):
                 "quote": quote,
             }
         )
+    # Show deepest pools first
+    try:
+        enriched.sort(
+            key=lambda x: float(x.get("totalShares", 0) or 0),
+            reverse=True,
+        )
+    except (ValueError, TypeError):
+        pass
 
     return render_template(
         "lp_list.html",
@@ -754,11 +763,13 @@ def lp_detail(base: str, quote: str):
     Returns:
         A Flask response rendering the pool detail template (HTTP 200) or aborts with 404 if the pool is not found.
     """
-    token_pair = f"{base}:{quote}"
+    base_u = base.upper().strip()
+    quote_u = quote.upper().strip()
+    token_pair = f"{base_u}:{quote_u}"
     pool = get_lp_pool(token_pair)
     if not pool:
         # Try reversed pair if user swapped order in URL
-        rev_pair = f"{quote}:{base}"
+        rev_pair = f"{quote_u}:{base_u}"
         pool = get_lp_pool(rev_pair)
         if pool:
             token_pair = rev_pair

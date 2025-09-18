@@ -4,8 +4,10 @@
 
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-4">
+    {% set base = token_pair.split(':')[0] %}
+    {% set quote = token_pair.split(':')[1] %}
     <h1>Liquidity Pool: {{ token_pair }}</h1>
-    <a href="{{ url_for('lp_list', token=token_pair.split(':')[0]) }}" class="btn btn-outline-secondary action-btn">
+    <a href="{{ url_for('lp_list', token=base) }}" class="btn btn-outline-secondary action-btn">
       <i class="bi bi-arrow-left me-1"></i> Back to Pools
     </a>
   </div>
