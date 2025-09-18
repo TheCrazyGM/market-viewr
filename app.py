@@ -340,6 +340,7 @@ def get_market_data(symbol, days=30):
 
 
 @cache.memoize(timeout=600)
+@cache.memoize(timeout=600)
 def get_lp_pools_for_token(token: str) -> list[dict]:
     """Return all liquidity pools where the token participates as base or quote.
 
@@ -348,19 +349,22 @@ def get_lp_pools_for_token(token: str) -> list[dict]:
     Fields: tokenPair (format "BASE:QUOTE"), baseQuantity, quoteQuantity, basePrice, quotePrice, totalShares, etc.
     """
     try:
-        # Match either "TOKEN:*" or "*:TOKEN" on tokenPair
+        # Match either "TOKEN:*" or "*:TOKEN" on tokenPair (escape metachars)
+        import re
+        token_u = str(token).upper().strip()
+        pattern_base = f"^{re.escape(token_u)}:"
+        pattern_quote = f":{re.escape(token_u)}$"
         query = {
             "$or": [
-                {"tokenPair": {"$regex": f"^{token}:"}},
-                {"tokenPair": {"$regex": f":{token}$"}},
+                {"tokenPair": {"$regex": pattern_base}},
+                {"tokenPair": {"$regex": pattern_quote}},
             ]
         }
         pools = he_api.find("marketpools", "pools", query=query, limit=1000)
         return pools or []
     except Exception as e:
-        app.logger.error(f"Error fetching LP pools for {token}: {e}")
+        app.logger.exception(f"Error fetching LP pools for {token}: {e}")
         return []
-
 
 @cache.memoize(timeout=600)
 def get_lp_pool(token_pair: str) -> dict | None:
