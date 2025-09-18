@@ -12,13 +12,13 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>{{ token }} Market Data</h1>
     <div class="btn-group">
-      <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-primary action-btn" data-action="info"
-         data-token="{{ token }}">
-        <i class="bi bi-info-circle me-1"></i> View Token Info
-      </a>
-      <a href="{{ url_for('lp_list', token=token) }}" class="btn btn-outline-warning action-btn" data-action="lp"
+      <a href="{{ url_for('lp_list', token=token) }}" class="btn btn-outline-primary action-btn" data-action="lp"
          data-token="{{ token }}">
         <i class="bi bi-droplet-half me-1"></i> LP
+      </a>
+      <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-secondary action-btn" data-action="info"
+         data-token="{{ token }}">
+        <i class="bi bi-info-circle me-1"></i> View Token Info
       </a>
     </div>
   </div>
@@ -37,7 +37,7 @@
           <p>
             <strong>Total Supply:</strong> {{
             token_info.supply if token_info.supply is string else
-            (token_info.supply | float) | format(',.8f')
+            (token_info.supply | float) | fmt(',.8f')
             }}
           </p>
           <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
@@ -171,16 +171,16 @@
                     <td>{{ order._id }}</td>
                     <td>{{ order.account }}</td>
                     <td class="number-cell text-end">
-                      {{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}
+                      {{ order.quantity if order.quantity is string else (order.quantity | float) | fmt(',.8f') }}
                     </td>
                     <td class="number-cell text-end">
                       {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
                       {% set price = order.price | float if order.price is not none else 0 %}
                       {% set total = quantity * price %}
-                      {{ '%.8f' | format(total) }}
+                      {{ '%.8f' | fmt(total) }}
                     </td>
                     <td class="text-success fw-bold number-cell text-end price-column">
-                      {{ order.price if order.price is string else (order.price | float) | format(',.8f') }}
+                      {{ order.price if order.price is string else (order.price | float) | fmt(',.8f') }}
                     </td>
                   </tr>
                 {% endfor %}
@@ -226,13 +226,13 @@
                     {% set price = order.price | float if order.price is not none else 0 %}
                     {% set total = quantity * price %}
                     <td class="text-danger fw-bold number-cell text-end price-column">
-                      {{ order.price if order.price is string else (order.price | float) | format(',.8f') }}
+                      {{ order.price if order.price is string else (order.price | float) | fmt(',.8f') }}
                     </td>
                     <td class="number-cell text-end">
-                      {{ '%.8f' | format(total) }}
+                      {{ '%.8f' | fmt(total) }}
                     </td>
                     <td class="number-cell text-end">
-                      {{ order.quantity if order.quantity is string else (order.quantity | float) | format(',.8f') }}
+                      {{ order.quantity if order.quantity is string else (order.quantity | float) | fmt(',.8f') }}
                     </td>
                     <td>{{ order.account }}</td>
                     <td>{{ order._id }}</td>
