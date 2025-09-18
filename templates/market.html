@@ -11,10 +11,16 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>{{ token }} Market Data</h1>
-    <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-primary action-btn" data-action="info"
-       data-token="{{ token }}">
-      <i class="bi bi-info-circle me-1"></i> View Token Info
-    </a>
+    <div class="btn-group">
+      <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-primary action-btn" data-action="info"
+         data-token="{{ token }}">
+        <i class="bi bi-info-circle me-1"></i> View Token Info
+      </a>
+      <a href="{{ url_for('lp_list', token=token) }}" class="btn btn-outline-warning action-btn" data-action="lp"
+         data-token="{{ token }}">
+        <i class="bi bi-droplet-half me-1"></i> LP
+      </a>
+    </div>
   </div>
 
   <div class="row">

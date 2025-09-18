@@ -82,6 +82,22 @@ def timestamp_to_date(timestamp):
     return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
+@app.template_filter("fmt")
+def fmt_number(value, spec=",.4f"):
+    """Safely format numeric values using a Python format spec.
+
+    Examples:
+    - {{ 1234.5678 | fmt(',.2f') }} -> '1,234.57'
+    - {{ '42' | fmt(',.0f') }} -> '42'
+    """
+    try:
+        fval = float(value)
+        return format(fval, spec)
+    except Exception:
+        # Return original if not convertible
+        return value
+
+
 # Hive Engine API endpoints for history API
 HE_HISTORY_API = "https://history.hive-engine.com"
 
@@ -318,6 +334,65 @@ def get_market_data(symbol, days=30):
     return []
 
 
+# ============================
+# Liquidity Pools (Marketpools)
+# ============================
+
+
+@cache.memoize(timeout=600)
+def get_lp_pools_for_token(token: str) -> list[dict]:
+    """Return all liquidity pools where the token participates as base or quote.
+
+    Contract: marketpools
+    Table: pools
+    Fields: tokenPair (format "BASE:QUOTE"), baseQuantity, quoteQuantity, basePrice, quotePrice, totalShares, etc.
+    """
+    try:
+        # Match either "TOKEN:*" or "*:TOKEN" on tokenPair
+        query = {
+            "$or": [
+                {"tokenPair": {"$regex": f"^{token}:"}},
+                {"tokenPair": {"$regex": f":{token}$"}},
+            ]
+        }
+        pools = he_api.find("marketpools", "pools", query=query, limit=1000)
+        return pools or []
+    except Exception as e:
+        app.logger.error(f"Error fetching LP pools for {token}: {e}")
+        return []
+
+
+@cache.memoize(timeout=600)
+def get_lp_pool(token_pair: str) -> dict | None:
+    """Return a specific liquidity pool by tokenPair (e.g., "TOKEN:SWAP.HIVE")."""
+    try:
+        pool = he_api.find_one("marketpools", "pools", query={"tokenPair": token_pair})
+        # Some RPCs may return list for find_one, normalize
+        if isinstance(pool, list):
+            pool = pool[0] if pool else None
+        return pool or None
+    except Exception as e:
+        app.logger.error(f"Error fetching LP pool {token_pair}: {e}")
+        return None
+
+
+@cache.memoize(timeout=600)
+def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
+    """Return top LP positions (liquidityPositions table) for a tokenPair sorted by shares desc."""
+    try:
+        positions = he_api.find(
+            "marketpools",
+            "liquidityPositions",
+            query={"tokenPair": token_pair},
+            limit=limit,
+            indexes=[{"index": "shares", "descending": True}],
+        )
+        return positions or []
+    except Exception as e:
+        app.logger.error(f"Error fetching LP positions for {token_pair}: {e}")
+        return []
+
+
 # Get token richlist
 @cache.memoize(timeout=900)
 def get_richlist(symbol):
@@ -532,6 +607,63 @@ def index(page=1):
         total=total,
         total_pages=total_pages,
         search_query=search_query,
+    )
+
+
+@app.route("/lp/<token>")
+@cache.cached(timeout=300)
+def lp_list(token: str):
+    """List available liquidity pools for a given token (participates as base or quote)."""
+    token_info = get_token_info(token)
+    if not token_info:
+        abort(404)
+
+    pools = get_lp_pools_for_token(token)
+
+    # Derive a friendlier structure including base/quote split
+    enriched: list[dict] = []
+    for p in pools:
+        tp = p.get("tokenPair", "")
+        base, sep, quote = tp.partition(":")
+        enriched.append(
+            {
+                **p,
+                "base": base,
+                "quote": quote,
+            }
+        )
+
+    return render_template(
+        "lp_list.html",
+        token=token,
+        token_info=token_info,
+        pools=enriched,
+    )
+
+
+@app.route("/lp/<base>/<quote>")
+@cache.cached(timeout=300)
+def lp_detail(base: str, quote: str):
+    """Show detailed information for a specific liquidity pool BASE:QUOTE."""
+    token_pair = f"{base}:{quote}"
+    pool = get_lp_pool(token_pair)
+    if not pool:
+        # Try reversed pair if user swapped order in URL
+        rev_pair = f"{quote}:{base}"
+        pool = get_lp_pool(rev_pair)
+        if pool:
+            token_pair = rev_pair
+        else:
+            abort(404)
+
+    # Fetch LP positions
+    positions = get_lp_positions(token_pair, limit=200)
+
+    return render_template(
+        "lp_detail.html",
+        token_pair=token_pair,
+        pool=pool,
+        positions=positions,
     )
 
 

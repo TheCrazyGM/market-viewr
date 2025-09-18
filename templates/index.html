@@ -59,6 +59,9 @@
                     <a href="{{ url_for('view', token=token.symbol) }}"
                        class="btn btn-sm btn-outline-secondary action-btn" data-token="{{ token.symbol }}"
                        data-action="info"><i class="bi bi-info-circle me-1"></i>Info</a>
+                    <a href="{{ url_for('lp_list', token=token.symbol) }}"
+                       class="btn btn-sm btn-outline-warning action-btn" data-token="{{ token.symbol }}"
+                       data-action="lp"><i class="bi bi-droplet-half me-1"></i>LP</a>
                   </td>
                   </tr>
                 {% endfor %}

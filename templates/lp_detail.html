@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Market-Viewr - LP {{ token_pair }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Liquidity Pool: {{ token_pair }}</h1>
+    <a href="{{ url_for('lp_list', token=token_pair.split(':')[0]) }}" class="btn btn-outline-secondary action-btn">
+      <i class="bi bi-arrow-left me-1"></i> Back to Pools
+    </a>
+  </div>
+
+  <div class="row">
+    <!-- Pool Summary Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-droplet-half me-2"></i>Pool Summary</h5>
+        </div>
+        <div class="card-body">
+          {% set base = token_pair.split(':')[0] %}
+          {% set quote = token_pair.split(':')[1] %}
+          <div class="row">
+            <div class="col-6">
+              <p class="mb-1"><strong>Base Token:</strong></p>
+              <p>{{ base }}</p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1"><strong>Quote Token:</strong></p>
+              <p>{{ quote }}</p>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6">
+              <p class="mb-1"><strong>Base Reserve</strong></p>
+              <p class="number-cell">{{ pool.baseQuantity if pool.baseQuantity is string else (pool.baseQuantity | float) | fmt(',.8f') }}</p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1"><strong>Quote Reserve</strong></p>
+              <p class="number-cell">{{ pool.quoteQuantity if pool.quoteQuantity is string else (pool.quoteQuantity | float) | fmt(',.8f') }}</p>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6">
+              <p class="mb-1"><strong>Price ({{ quote }})</strong></p>
+              <p class="number-cell text-success fw-bold price-column">{{ pool.basePrice if pool.basePrice is string else (pool.basePrice | float) | fmt(',.8f') }}</p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1"><strong>Inverse Price ({{ base }})</strong></p>
+              <p class="number-cell text-danger fw-bold price-column">{{ pool.quotePrice if pool.quotePrice is string else (pool.quotePrice | float) | fmt(',.8f') }}</p>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6">
+              <p class="mb-1"><strong>Total Shares</strong></p>
+              <p class="number-cell">{{ pool.totalShares if pool.totalShares is string else (pool.totalShares | float) | fmt(',.8f') }}</p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1"><strong>Precision</strong></p>
+              <p>{{ pool.precision }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer"><small class="text-muted">Powered by Hive-Engine</small></div>
+      </div>
+    </div>
+
+    <!-- Volume Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #1a1d23; color: white;">
+          <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Pool Volumes</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-6">
+              <p class="mb-1"><strong>Base Volume</strong></p>
+              <p class="number-cell">{{ pool.baseVolume if pool.baseVolume is string else (pool.baseVolume | float) | fmt(',.8f') }}</p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1"><strong>Quote Volume</strong></p>
+              <p class="number-cell">{{ pool.quoteVolume if pool.quoteVolume is string else (pool.quoteVolume | float) | fmt(',.8f') }}</p>
+            </div>
+          </div>
+          <p class="mb-1"><strong>Creator</strong></p>
+          <p>{{ pool.creator }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LP Positions -->
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="bi bi-people me-2"></i>Liquidity Provider Positions</h5>
+        </div>
+        <div class="card-body">
+          {% if positions and positions|length > 0 %}
+            <div class="table-responsive">
+              <table class="table table-hover" id="lp-positions-table">
+                <thead>
+                  <tr>
+                    <th>Account</th>
+                    <th class="number-cell text-end">Shares</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for pos in positions %}
+                    <tr>
+                      <td>{{ pos.account }}</td>
+                      <td class="number-cell text-end">{{ (pos.shares | default(0) | float) | fmt(',.8f') }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info mb-0"><i class="bi bi-info-circle me-2"></i>No LP positions found.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tables = [document.getElementById('lp-positions-table')].filter(Boolean);
+      tables.forEach((table) => {
+      // Default sort by Shares (second column) descending on load
+      // Rely on global sorter (scripts.js) for click bindings.
+      // Column index 1 corresponds to Shares
+        sortTable(table, 1, 'desc');
+      });
+    });
+  </script>
+{% endblock %}
