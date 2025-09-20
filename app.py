@@ -526,9 +526,27 @@ def get_richlist(symbol):
                         continue
 
                     if acct and acct not in seen_accounts:
-                        balance_val = float(holder.get("balance", 0) or 0)
-                        stake_val = float(holder.get("stake", 0) or 0)
-                        holder["total"] = balance_val + stake_val
+                        # Normalize common numeric fields to floats for consistent downstream formatting
+                        def _to_float(v):
+                            try:
+                                return float(v if v is not None else 0)
+                            except (ValueError, TypeError):
+                                return 0.0
+
+                        for num_key in (
+                            "balance",
+                            "stake",
+                            "pendingUnstake",
+                            "delegationsIn",
+                            "delegationsOut",
+                            "pendingUndelegations",
+                        ):
+                            if num_key in holder:
+                                holder[num_key] = _to_float(holder.get(num_key))
+
+                        balance_val = holder.get("balance", 0.0)
+                        stake_val = holder.get("stake", 0.0)
+                        holder["total"] = float(balance_val) + float(stake_val)
                         richlist.append(holder)
                         seen_accounts.add(acct)
 
