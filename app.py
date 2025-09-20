@@ -782,10 +782,30 @@ def lp_detail(base: str, quote: str):
     # Fetch LP positions
     positions = get_lp_positions(token_pair, limit=200)
 
+    # Normalize pool numeric fields to floats so Jinja formatting works consistently
+    def _to_float(val):
+        try:
+            return float(val if val is not None else 0)
+        except (ValueError, TypeError):
+            return 0.0
+
+    pool_numeric = dict(pool) if isinstance(pool, dict) else {}
+    for key in [
+        "baseQuantity",
+        "quoteQuantity",
+        "basePrice",
+        "quotePrice",
+        "totalShares",
+        "baseVolume",
+        "quoteVolume",
+    ]:
+        if key in pool_numeric:
+            pool_numeric[key] = _to_float(pool_numeric.get(key))
+
     return render_template(
         "lp_detail.html",
         token_pair=token_pair,
-        pool=pool,
+        pool=pool_numeric,
         positions=positions,
     )
 
