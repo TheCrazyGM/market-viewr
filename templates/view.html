@@ -24,12 +24,11 @@
         <div class="card-body">
           <p>
             <strong>Total Supply:</strong>
-            {{ token_info.supply if token_info.supply is string else (token_info.supply | float) | fmt(',.8f') }}
+            {{ token_info.supply | fmt(',.8f') }}
           </p>
           <p>
             <strong>Circulating Supply:</strong>
-            {{ token_info.circulatingSupply if token_info.circulatingSupply is string else (token_info.circulatingSupply |
-            float) | fmt(',.8f') }}
+            {{ token_info.circulatingSupply | fmt(',.8f') }}
           </p>
           {% if burned_balance > 0 %}
             <p>

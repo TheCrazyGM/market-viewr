@@ -331,6 +331,26 @@ def get_token_info(token):
                 # If metadata is not valid JSON, keep it as is
                 pass
 
+        # Normalize common numeric fields to floats for consistent template formatting
+        if isinstance(token_info, dict):
+
+            def _to_float(v):
+                try:
+                    return float(v)
+                except (ValueError, TypeError):
+                    return 0.0
+
+            for k in [
+                "supply",
+                "circulatingSupply",
+                "stakingEnabled",
+                "unstakingCooldown",
+                "precision",
+            ]:
+                if k in token_info and token_info.get(k) is not None:
+                    # precision and stakingEnabled may be non-float types; keep original if appropriate
+                    if k in ("supply", "circulatingSupply"):
+                        token_info[k] = _to_float(token_info.get(k))
         return token_info
     except Exception:
         return None

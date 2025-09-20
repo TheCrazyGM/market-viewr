@@ -35,10 +35,7 @@
         </div>
         <div class="card-body">
           <p>
-            <strong>Total Supply:</strong> {{
-            token_info.supply if token_info.supply is string else
-            (token_info.supply | float) | fmt(',.8f')
-            }}
+            <strong>Total Supply:</strong> {{ token_info.supply | fmt(',.8f') }}
           </p>
           <p><strong>Issued By:</strong> {{ token_info.issuer }}</p>
           {% if token_info.metadata %}
