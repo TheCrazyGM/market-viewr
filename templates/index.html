@@ -34,7 +34,7 @@
                   <th>Symbol</th>
                   <th>Name</th>
                   <th class="number-cell text-end">Total Supply</th>
-                  <th>Actions</th>
+                  <th class="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody id="tokenTableBody">
@@ -52,7 +52,7 @@
                   <td class="number-cell text-end">
                     {{ token.supply | fmt(',.8f') }}
                   </td>
-                  <td>
+                  <td class="text-end">
                     <a href="{{ url_for('market', token=token.symbol) }}"
                        class="btn btn-sm btn-outline-primary action-btn" data-token="{{ token.symbol }}"
                        data-action="market"><i class="bi bi-graph-up-arrow me-1"></i>Market</a>
