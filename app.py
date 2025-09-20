@@ -288,6 +288,21 @@ def get_tokens():
         if not batch:
             break
 
+        # Normalize numeric fields for each token in the batch
+        for t in batch:
+            if isinstance(t, dict):
+
+                def _to_float(v):
+                    try:
+                        return float(v)
+                    except (ValueError, TypeError):
+                        return 0.0
+
+                if "supply" in t and t.get("supply") is not None:
+                    t["supply"] = _to_float(t.get("supply"))
+                if "circulatingSupply" in t and t.get("circulatingSupply") is not None:
+                    t["circulatingSupply"] = _to_float(t.get("circulatingSupply"))
+
         tokens.extend(batch)
 
         # If we got fewer tokens than the limit, we have reached the end

@@ -50,7 +50,7 @@
                   <td>{{ token.symbol }}</td>
                   <td>{{ token.name }}</td>
                   <td class="number-cell text-end">
-                    {{ token.supply if token.supply is string else (token.supply | float) | fmt(',.8f') }}
+                    {{ token.supply | fmt(',.8f') }}
                   </td>
                   <td>
                     <a href="{{ url_for('market', token=token.symbol) }}"
