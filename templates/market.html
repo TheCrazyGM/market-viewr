@@ -177,7 +177,7 @@
                       {% set quantity = order.quantity | float if order.quantity is not none else 0 %}
                       {% set price = order.price | float if order.price is not none else 0 %}
                       {% set total = quantity * price %}
-                      {{ '%.8f' | fmt(total) }}
+                      {{ total | fmt(',.8f') }}
                     </td>
                     <td class="text-success fw-bold number-cell text-end price-column">
                       {{ order.price if order.price is string else (order.price | float) | fmt(',.8f') }}
@@ -229,7 +229,7 @@
                       {{ order.price if order.price is string else (order.price | float) | fmt(',.8f') }}
                     </td>
                     <td class="number-cell text-end">
-                      {{ '%.8f' | fmt(total) }}
+                      {{ total | fmt(',.8f') }}
                     </td>
                     <td class="number-cell text-end">
                       {{ order.quantity if order.quantity is string else (order.quantity | float) | fmt(',.8f') }}
