@@ -105,6 +105,8 @@
                 <thead>
                   <tr>
                     <th>Account</th>
+                    <th class="number-cell text-end">Base Token</th>
+                    <th class="number-cell text-end">Other Token</th>
                     <th class="number-cell text-end">Shares</th>
                   </tr>
                 </thead>
@@ -112,7 +114,15 @@
                   {% for pos in positions %}
                     <tr>
                       <td>{{ pos.account }}</td>
-                      <td class="number-cell text-end">{{ (pos.shares | default(0) | float) | fmt(',.8f') }}</td>
+                      {% set total_shares = pool.totalShares if pool.totalShares is string else (pool.totalShares | float) %}
+                      {% set base_qty = pool.baseQuantity if pool.baseQuantity is string else (pool.baseQuantity | float) %}
+                      {% set quote_qty = pool.quoteQuantity if pool.quoteQuantity is string else (pool.quoteQuantity | float) %}
+                      {% set shares_val = pos.shares | default(0) | float %}
+                      {% set base_balance = (base_qty | float) * shares_val / (total_shares | float) if (total_shares | float) else 0 %}
+                      {% set other_balance = (quote_qty | float) * shares_val / (total_shares | float) if (total_shares | float) else 0 %}
+                      <td class="number-cell text-end">{{ (base_balance | float) | fmt(',.8f') }}</td>
+                      <td class="number-cell text-end">{{ (other_balance | float) | fmt(',.8f') }}</td>
+                      <td class="number-cell text-end">{{ (shares_val | float) | fmt(',.8f') }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -135,7 +145,8 @@
       // Default sort by Shares (second column) descending on load
       // Rely on global sorter (scripts.js) for click bindings.
       // Column index 1 corresponds to Shares
-        sortTable(table, 1, 'desc');
+        // With added Base/Other columns, Shares is now column index 3
+        sortTable(table, 3, 'desc');
       });
     });
   </script>
