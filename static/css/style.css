@@ -56,6 +56,18 @@ body {
   margin-bottom: 0;
 }
 
+/* Compact, consistent table style to match market tables */
+.compact-table {
+  font-size: 0.85rem;
+}
+
+.compact-table td,
+.compact-table th {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.2;
+  white-space: nowrap !important;
+}
+
 /* Progress bar colors */
 .progress-bar {
   background-color: #0d6efd;
