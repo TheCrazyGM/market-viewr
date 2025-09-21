@@ -21,6 +21,7 @@ dependencies = [
     "nectarengine",
     "flask-caching",
     "redis",
+    "gevent>=25.9.1",
 ]
 requires-python = ">=3.13"
 
