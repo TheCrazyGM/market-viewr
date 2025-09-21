@@ -39,7 +39,8 @@ except Exception as e:
     app.config["CACHE_TYPE"] = "SimpleCache"
 
 cache = Cache(app)
-# Setup Logger
+# Setup Logger with proper level
+app.logger.setLevel(logging.INFO)
 app.logger = logging.getLogger(__name__)
 
 
@@ -278,15 +279,20 @@ def is_valid_image_url(url):
 @cache.memoize(timeout=3600)
 def get_tokens():
     """Get list of all tokens from Hive Engine with pagination."""
+    app.logger.info("Starting get_tokens")
     tokens = []
     offset = 0
     limit = 1000  # Maximum limit per request
 
     while True:
+        app.logger.debug(f"Fetching tokens batch, offset: {offset}, limit: {limit}")
         # Fetch a batch of tokens
         batch = he_api.find("tokens", "tokens", limit=limit, offset=offset)
         if not batch:
+            app.logger.debug("No more tokens to fetch")
             break
+
+        app.logger.debug(f"Received {len(batch)} tokens in batch")
 
         # Normalize numeric fields for each token in the batch
         for t in batch:
@@ -307,11 +313,15 @@ def get_tokens():
 
         # If we got fewer tokens than the limit, we have reached the end
         if len(batch) < limit:
+            app.logger.debug(
+                f"Reached end of tokens, last batch had {len(batch)} tokens"
+            )
             break
 
         # Move to the next batch
         offset += limit
 
+    app.logger.info(f"Completed get_tokens, total tokens: {len(tokens)}")
     return tokens
 
 
@@ -319,6 +329,7 @@ def get_tokens():
 @cache.memoize(timeout=900)
 def get_token_info(token):
     """Get token information from Hive-Engine."""
+    app.logger.debug(f"Getting token info for: {token}")
     try:
         # Use the correct API to get token info
         token_info = he_api.find_one("tokens", "tokens", query={"symbol": token})
@@ -326,6 +337,10 @@ def get_token_info(token):
         # If token_info is a list, get the first item
         if isinstance(token_info, list) and token_info:
             token_info = token_info[0]
+
+        app.logger.debug(
+            f"Raw token info retrieved for {token}: {token_info is not None}"
+        )
 
         # Parse metadata if it's a string
         if (
@@ -335,19 +350,23 @@ def get_token_info(token):
         ):
             try:
                 token_info["metadata"] = json.loads(token_info["metadata"])
+                app.logger.debug(f"Parsed metadata for token {token}")
 
                 # Validate icon URL if present
                 if token_info["metadata"] and "icon" in token_info["metadata"]:
                     if not is_valid_image_url(token_info["metadata"]["icon"]):
                         # Remove or replace invalid icon
                         token_info["metadata"]["icon"] = None
+                        app.logger.debug(f"Invalid icon URL removed for token {token}")
 
             except json.JSONDecodeError:
                 # If metadata is not valid JSON, keep it as is
+                app.logger.warning(f"Invalid JSON metadata for token {token}")
                 pass
 
         # Normalize common numeric fields to floats for consistent template formatting
         if isinstance(token_info, dict):
+            app.logger.debug(f"Normalizing numeric fields for token {token}")
 
             def _to_float(v):
                 try:
@@ -366,8 +385,10 @@ def get_token_info(token):
                     # precision and stakingEnabled may be non-float types; keep original if appropriate
                     if k in ("supply", "circulatingSupply"):
                         token_info[k] = _to_float(token_info.get(k))
+        app.logger.debug(f"Token info retrieval completed for {token}")
         return token_info
-    except Exception:
+    except Exception as e:
+        app.logger.error(f"Error getting token info for {token}: {e}")
         return None
 
 
@@ -415,6 +436,7 @@ def get_lp_pools_for_token(token: str) -> list[dict]:
     - Token matching is literal and case-sensitive.
     - The function returns a list of dicts; callers should handle an empty list as "no pools".
     """
+    app.logger.info(f"Starting get_lp_pools_for_token for token: {token}")
     try:
         # Escape special regex characters in the token
         escaped_token = re.escape(token)
@@ -425,7 +447,11 @@ def get_lp_pools_for_token(token: str) -> list[dict]:
                 {"tokenPair": {"$regex": f":{escaped_token}$"}},
             ]
         }
+        app.logger.debug(f"Querying LP pools for token {token} with regex patterns")
         pools = he_api.find("marketpools", "pools", query=query, limit=1000)
+        app.logger.info(
+            f"Found {len(pools) if pools else 0} LP pools for token {token}"
+        )
         return pools or []
     except Exception as e:
         app.logger.error(f"Error fetching LP pools for {token}: {e}")
@@ -440,11 +466,13 @@ def get_lp_pool(token_pair: str) -> dict | None:
     This normalizes RPC responses that sometimes return a list for a single result (the first item is used).
     Returns None if the pool does not exist or if an error occurs while fetching.
     """
+    app.logger.debug(f"Getting LP pool for token pair: {token_pair}")
     try:
         pool = he_api.find_one("marketpools", "pools", query={"tokenPair": token_pair})
         # Some RPCs may return list for find_one, normalize
         if isinstance(pool, list):
             pool = pool[0] if pool else None
+        app.logger.debug(f"LP pool {'found' if pool else 'not found'} for {token_pair}")
         return pool or None
     except Exception as e:
         app.logger.error(f"Error fetching LP pool {token_pair}: {e}")
@@ -465,6 +493,9 @@ def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
     Returns:
         list[dict]: A list of position records (possibly empty).
     """
+    app.logger.debug(
+        f"Getting LP positions for token pair: {token_pair}, limit: {limit}"
+    )
     try:
         positions = he_api.find(
             "marketpools",
@@ -473,13 +504,15 @@ def get_lp_positions(token_pair: str, limit: int = 200) -> list[dict]:
             limit=limit,
             indexes=[{"index": "shares", "descending": True}],
         )
+        app.logger.debug(
+            f"Found {len(positions) if positions else 0} LP positions for {token_pair}"
+        )
         return positions or []
     except Exception as e:
         app.logger.error(f"Error fetching LP positions for {token_pair}: {e}")
         return []
 
 
-# Get token richlist
 @cache.memoize(timeout=900)
 def get_richlist(symbol):
     """
@@ -502,6 +535,7 @@ def get_richlist(symbol):
     Raises:
         RuntimeError: If the underlying Hive-Engine RPC requests time out or fail.
     """
+    app.logger.info(f"Starting get_richlist for symbol: {symbol}")
     richlist: list[dict] = []
     burned_balance = 0.0
     page_size = 1000  # Hive-Engine max per request
@@ -509,9 +543,14 @@ def get_richlist(symbol):
     seen_accounts: set[str] = set()
 
     try:
+        app.logger.debug(f"Processing {len(prefixes)} prefixes for symbol {symbol}")
         for prefix in prefixes:
+            app.logger.debug(f"Processing prefix '{prefix}' for symbol {symbol}")
             offset = 0
             while True:
+                app.logger.debug(
+                    f"Fetching batch for prefix '{prefix}', offset {offset}, symbol {symbol}"
+                )
                 batch = he_api.find(
                     "tokens",
                     "balances",
@@ -527,7 +566,13 @@ def get_richlist(symbol):
                     offset=offset,
                     indexes=[{"index": "balance", "descending": True}],
                 )
+                app.logger.debug(
+                    f"Received batch of {len(batch) if batch else 0} records for prefix '{prefix}', symbol {symbol}"
+                )
                 if not batch:
+                    app.logger.debug(
+                        f"No more batches for prefix '{prefix}', symbol {symbol}"
+                    )
                     break
 
                 for holder in batch:
@@ -536,6 +581,9 @@ def get_richlist(symbol):
                         # burned tokens
                         try:
                             burned_balance = float(holder.get("balance", 0))
+                            app.logger.debug(
+                                f"Found burned balance: {burned_balance} for symbol {symbol}"
+                            )
                         except (ValueError, TypeError):
                             burned_balance = 0.0
                         continue
@@ -566,21 +614,33 @@ def get_richlist(symbol):
                         seen_accounts.add(acct)
 
                 if len(batch) < page_size:
+                    app.logger.debug(
+                        f"Last batch for prefix '{prefix}', received {len(batch)} records, symbol {symbol}"
+                    )
                     break
                 offset += page_size
 
         # After looping through all prefixes, sort and return
+        app.logger.info(
+            f"Sorting richlist for symbol {symbol}, total holders: {len(richlist)}"
+        )
         richlist.sort(key=lambda h: h.get("total", 0), reverse=True)
+        app.logger.info(
+            f"Completed get_richlist for symbol {symbol}, returned {len(richlist)} holders, burned balance: {burned_balance}"
+        )
         return richlist, burned_balance
 
     except RequestException as e:
-        app.logger.error(f"Richlist RPC failed: {e}")
+        app.logger.error(f"Richlist RPC failed for symbol {symbol}: {e}")
         raise RuntimeError("Hive-Engine RPC timeout")
 
 
 # Get token market history
 @cache.memoize(timeout=300)
 def get_trade_history(symbol, limit=100, days=30):
+    app.logger.info(
+        f"Starting get_trade_history for symbol {symbol}, limit {limit}, days {days}"
+    )
     try:
         all_trades = []
         batch_size = 1000  # Maximum batch size for each API call
@@ -600,7 +660,11 @@ def get_trade_history(symbol, limit=100, days=30):
         current_time = time.time()
         cutoff_time = current_time - (days * 24 * 60 * 60)  # X days ago in seconds
 
+        app.logger.debug(
+            f"Fetching up to {total_needed} trades for {symbol}, cutoff time: {cutoff_time}"
+        )
         while len(all_trades) < total_needed:
+            app.logger.debug(f"Fetching batch for {symbol}, offset {offset}")
             # Get a batch of trades
             batch = he_market.get_trades_history(
                 symbol=symbol, limit=batch_size, offset=offset
@@ -608,7 +672,10 @@ def get_trade_history(symbol, limit=100, days=30):
 
             # If no more trades, break the loop
             if not batch:
+                app.logger.debug(f"No more trades for {symbol}")
                 break
+
+            app.logger.debug(f"Received {len(batch)} trades in batch for {symbol}")
 
             # Process this batch
             for trade in batch:
@@ -621,6 +688,9 @@ def get_trade_history(symbol, limit=100, days=30):
 
             # If we found a trade older than our cutoff, stop fetching
             if oldest_timestamp and int(oldest_timestamp) < cutoff_time:
+                app.logger.debug(
+                    f"Reached cutoff time for {symbol}, oldest trade: {oldest_timestamp}"
+                )
                 break
 
             # Move to the next batch
@@ -628,12 +698,19 @@ def get_trade_history(symbol, limit=100, days=30):
 
             # Safety check - if we've made too many API calls, stop
             if offset > batch_size * 10:
+                app.logger.warning(
+                    f"Safety limit reached for {symbol}, stopping after {offset} offset"
+                )
                 break
 
         # Return only the requested number of trades
-        return all_trades[:limit]
+        result = all_trades[:limit]
+        app.logger.info(
+            f"Completed get_trade_history for {symbol}, returned {len(result)} trades"
+        )
+        return result
     except Exception as e:
-        print(f"Error fetching trade history: {e}")
+        app.logger.error(f"Error fetching trade history for {symbol}: {e}")
         return []
 
 
@@ -643,6 +720,7 @@ def get_trade_history(symbol, limit=100, days=30):
 @app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint to verify the application and its dependencies are running."""
+    app.logger.debug("Starting health check")
     status = {
         "status": "ok",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -653,19 +731,24 @@ def health_check():
     try:
         cache.set("healthcheck", "ok", timeout=5)
         status["dependencies"]["redis"] = "ok"
+        app.logger.debug("Redis health check passed")
     except Exception as e:
         status["status"] = "error"
         status["dependencies"]["redis"] = f"error: {str(e)}"
+        app.logger.warning(f"Redis health check failed: {e}")
 
     # Check Hive-Engine API connection using a simple and valid token query
     try:
         # Fetch the first token as a health test
         he_api.find_one("tokens", "tokens", query={})
         status["dependencies"]["hive_engine"] = "ok"
+        app.logger.debug("Hive-Engine health check passed")
     except Exception as e:
         status["status"] = "error"
         status["dependencies"]["hive_engine"] = f"error: {str(e)}"
+        app.logger.warning(f"Hive-Engine health check failed: {e}")
 
+    app.logger.info(f"Health check completed with status: {status['status']}")
     return status, 200 if status["status"] == "ok" else 503
 
 
@@ -765,10 +848,13 @@ def lp_list(token: str):
     Raises:
         Aborts with HTTP 404 if the token is not found.
     """
+    app.logger.info(f"Starting lp_list route for token: {token}")
     token_info = get_token_info(token)
     if not token_info:
+        app.logger.warning(f"Token not found for LP list: {token}")
         abort(404)
 
+    app.logger.debug(f"Fetching LP pools for token {token}")
     pools = get_lp_pools_for_token(token)
 
     # Derive a friendlier structure including base/quote split
@@ -792,6 +878,7 @@ def lp_list(token: str):
     except (ValueError, TypeError):
         pass
 
+    app.logger.info(f"Rendering LP list for {token} with {len(enriched)} pools")
     return render_template(
         "lp_list.html",
         token=token,
@@ -819,20 +906,28 @@ def lp_detail(base: str, quote: str):
     Returns:
         A Flask response rendering the pool detail template (HTTP 200) or aborts with 404 if the pool is not found.
     """
+    app.logger.info(f"Starting lp_detail route for {base}/{quote}")
     base_u = base.upper().strip()
     quote_u = quote.upper().strip()
     token_pair = f"{base_u}:{quote_u}"
+    app.logger.debug(f"Looking for LP pool: {token_pair}")
     pool = get_lp_pool(token_pair)
     if not pool:
         # Try reversed pair if user swapped order in URL
         rev_pair = f"{quote_u}:{base_u}"
+        app.logger.debug(f"Pool not found, trying reversed pair: {rev_pair}")
         pool = get_lp_pool(rev_pair)
         if pool:
             token_pair = rev_pair
+            app.logger.debug(f"Found pool with reversed pair: {token_pair}")
         else:
+            app.logger.warning(
+                f"No LP pool found for {base_u}:{quote_u} or {quote_u}:{base_u}"
+            )
             abort(404)
 
     # Fetch LP positions
+    app.logger.debug(f"Fetching LP positions for {token_pair}")
     positions = get_lp_positions(token_pair, limit=200)
 
     # Normalize pool numeric fields to floats so Jinja formatting works consistently
@@ -855,6 +950,9 @@ def lp_detail(base: str, quote: str):
         if key in pool_numeric:
             pool_numeric[key] = _to_float(pool_numeric.get(key))
 
+    app.logger.info(
+        f"Rendering LP detail for {token_pair} with {len(positions)} positions"
+    )
     return render_template(
         "lp_detail.html",
         token_pair=token_pair,
@@ -1010,12 +1108,14 @@ def api_chart(token, timeframe):
 @app.route("/api/orderbook/<token>")
 def api_orderbook(token):
     """API endpoint that returns complete order book data for a specific token."""
+    app.logger.info(f"Starting orderbook API for token: {token}")
     try:
         # Get filter parameters
         excluded_accounts = request.args.get("exclude", "").split(",")
         excluded_accounts = [
             account.strip() for account in excluded_accounts if account.strip()
         ]
+        app.logger.debug(f"Excluded accounts for {token}: {excluded_accounts}")
 
         # Initialize empty lists for buy and sell orders
         buy_orders = []
@@ -1026,6 +1126,7 @@ def api_orderbook(token):
         offset = 0
 
         # Get the first page of orders
+        app.logger.debug(f"Fetching buy orders for {token}")
         buy_page = he_market.get_buy_book(symbol=token, limit=limit)
 
         # Loop to get all buy orders
@@ -1048,10 +1149,13 @@ def api_orderbook(token):
             # Get next page
             buy_page = he_market.get_buy_book(symbol=token, limit=limit, offset=offset)
 
+        app.logger.debug(f"Fetched {len(buy_orders)} buy orders for {token}")
+
         # Reset offset for sell orders
         offset = 0
 
         # Get the first page of sell orders
+        app.logger.debug(f"Fetching sell orders for {token}")
         sell_page = he_market.get_sell_book(symbol=token, limit=limit)
 
         # Loop to get all sell orders
@@ -1076,6 +1180,8 @@ def api_orderbook(token):
                 symbol=token, limit=limit, offset=offset
             )
 
+        app.logger.debug(f"Fetched {len(sell_orders)} sell orders for {token}")
+
         # Get a list of most active accounts to help with filtering
         all_accounts = {}
         for order in buy_orders + sell_orders:
@@ -1091,6 +1197,9 @@ def api_orderbook(token):
             )[:10]
         ]
 
+        app.logger.info(
+            f"Orderbook API completed for {token}: {len(buy_orders)} buy, {len(sell_orders)} sell orders"
+        )
         return (
             {
                 "buy_book": buy_orders,
@@ -1103,7 +1212,7 @@ def api_orderbook(token):
         )
 
     except Exception as e:
-        app.logger.error(f"Error getting order book: {str(e)}")
+        app.logger.error(f"Error getting order book for {token}: {str(e)}")
         return {"error": "Error retrieving order book"}, 500
 
 
@@ -1111,26 +1220,39 @@ def api_orderbook(token):
 @cache.cached(timeout=300)
 def market(token):
     """Display market data for a specific token."""
+    app.logger.info(f"Starting market route for token: {token}")
     token_info = get_token_info(token)
     if not token_info:
+        app.logger.warning(f"Token not found for market: {token}")
         abort(404)
 
     # Get buy and sell book for rendering - API will fetch complete books
+    app.logger.debug(f"Fetching order books for {token}")
     try:
         buy_book = he_market.get_buy_book(symbol=token)
+        app.logger.debug(
+            f"Fetched {len(buy_book) if buy_book else 0} buy orders for {token}"
+        )
     except Exception as e:
         app.logger.error(f"Error getting buy book for {token}: {str(e)}")
         buy_book = []
 
     try:
         sell_book = he_market.get_sell_book(symbol=token)
+        app.logger.debug(
+            f"Fetched {len(sell_book) if sell_book else 0} sell orders for {token}"
+        )
     except Exception as e:
         app.logger.error(f"Error getting sell book for {token}: {str(e)}")
         sell_book = []
 
     # Get trade history for the last 30 days, with a larger limit
+    app.logger.debug(f"Fetching trade history for {token}")
     trade_history = get_trade_history(token, limit=500, days=30)
 
+    app.logger.info(
+        f"Rendering market page for {token} with {len(trade_history)} trades"
+    )
     return render_template(
         "market.html",
         token=token,
@@ -1145,12 +1267,18 @@ def market(token):
 @cache.cached(timeout=900)
 def view(token):
     """Display token information and richlist."""
+    app.logger.info(f"Starting view route for token: {token}")
     token_info = get_token_info(token)
     if not token_info:
+        app.logger.warning(f"Token not found: {token}")
         abort(404)
 
+    app.logger.info(f"Token info retrieved for {token}, now fetching richlist")
     try:
         richlist, burned_balance = get_richlist(token)
+        app.logger.info(
+            f"Richlist fetched successfully for {token}, {len(richlist)} holders"
+        )
     except RuntimeError:
         # Be resilient: show the page without richlist instead of failing with 503
         app.logger.warning(
@@ -1171,6 +1299,9 @@ def view(token):
 
     # Show only top 100 holders by default
     top_richlist = richlist[:100]
+    app.logger.info(
+        f"Rendering view page for {token} with {len(top_richlist)} top holders"
+    )
     return render_template(
         "view.html",
         token=token,
