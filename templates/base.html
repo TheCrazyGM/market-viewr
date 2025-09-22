@@ -20,7 +20,7 @@
   <!-- Top page loading bar -->
     <div id="page-load-bar" aria-hidden="true"></div>
   <!-- Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary shadow-sm sticky-top" id="appNavbar">
       <div class="container">
         <a class="navbar-brand" href="{{ url_for('index') }}">
           <i class="bi bi-graph-up-arrow text-info me-2"></i>Market-Viewr
@@ -50,7 +50,7 @@
           <div class="d-flex">
             <div class="form-check form-switch mt-2">
               <input class="form-check-input" type="checkbox" id="themeToggle" />
-              <label class="form-check-label text-light" for="themeToggle">
+              <label class="form-check-label" for="themeToggle">
                 <i class="bi bi-sun-fill" id="lightIcon"></i>
                 <i class="bi bi-moon-fill d-none" id="darkIcon"></i>
               </label>
@@ -64,7 +64,7 @@
     <div class="container mt-4 mb-5">{% block content %}{% endblock %}</div>
 
   <!-- Footer -->
-    <footer class="footer py-3 bg-light fixed-bottom shadow-lg" id="appFooter">
+    <footer class="footer py-3 bg-body fixed-bottom shadow-lg" id="appFooter">
       <div class="container text-center">
         <span class="text-muted">
           <i class="bi bi-code-slash me-1"></i> with
@@ -88,15 +88,16 @@
         const lightIcon = document.getElementById("lightIcon");
         const darkIcon = document.getElementById("darkIcon");
         const htmlElement = document.documentElement;
-        const appFooter = document.getElementById("appFooter");
+        const appNavbar = document.getElementById("appNavbar");
 
       // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
         if (savedTheme === "dark") {
           htmlElement.setAttribute("data-bs-theme", "dark");
           themeToggle.checked = true;
-          updateIconsAndUI("dark");
         }
+        // Ensure navbar and icons reflect current theme on first load
+        updateIconsAndUI(htmlElement.getAttribute("data-bs-theme") || "light");
 
       // Toggle theme on switch change
         themeToggle.addEventListener("change", function () {
@@ -112,13 +113,15 @@
           if (theme === "dark") {
             lightIcon.classList.add("d-none");
             darkIcon.classList.remove("d-none");
-            appFooter.classList.remove("bg-light");
-            appFooter.classList.add("bg-dark");
           } else {
             lightIcon.classList.remove("d-none");
             darkIcon.classList.add("d-none");
-            appFooter.classList.remove("bg-dark");
-            appFooter.classList.add("bg-light");
+          }
+
+          // Keep navbar controls readable by explicitly setting its theme
+          // This ensures the toggler icon and text contrast update correctly.
+          if (appNavbar) {
+            appNavbar.setAttribute("data-bs-theme", theme);
           }
         }
       });
