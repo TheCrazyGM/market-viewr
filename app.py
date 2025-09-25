@@ -1,23 +1,22 @@
 import csv
-from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
 import io
 import json
 import logging
-import re
 import random
-import string
+import re
 import time
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urlparse
 
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.utils
+import requests
 from flask import Flask, Response, abort, redirect, render_template, request, url_for
 from flask_caching import Cache
 from nectarengine.api import Api
 from nectarengine.market import Market
-import pandas as pd
-import plotly
-import plotly.graph_objects as go
-import requests
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 from werkzeug.exceptions import HTTPException
@@ -539,88 +538,88 @@ def get_richlist(symbol):
     richlist: list[dict] = []
     burned_balance = 0.0
     page_size = 1000  # Hive-Engine max per request
-    prefixes = list(string.ascii_lowercase)
     seen_accounts: set[str] = set()
+    last_username = ""  # Start with empty string
 
     try:
-        app.logger.debug(f"Processing {len(prefixes)} prefixes for symbol {symbol}")
-        for prefix in prefixes:
-            app.logger.debug(f"Processing prefix '{prefix}' for symbol {symbol}")
-            offset = 0
-            while True:
-                app.logger.debug(
-                    f"Fetching batch for prefix '{prefix}', offset {offset}, symbol {symbol}"
-                )
-                batch = he_api.find(
-                    "tokens",
-                    "balances",
-                    query={
-                        "symbol": symbol,
-                        "account": {"$regex": f"^{prefix}"},
-                        "$or": [
-                            {"balance": {"$gt": "0.00000000"}},
-                            {"stake": {"$gt": "0.00000000"}},
-                        ],
-                    },
-                    limit=page_size,
-                    offset=offset,
-                    indexes=[{"index": "balance", "descending": True}],
-                )
-                app.logger.debug(
-                    f"Received batch of {len(batch) if batch else 0} records for prefix '{prefix}', symbol {symbol}"
-                )
-                if not batch:
-                    app.logger.debug(
-                        f"No more batches for prefix '{prefix}', symbol {symbol}"
-                    )
-                    break
+        while True:
+            app.logger.debug(
+                f"Fetching batch for symbol {symbol}, last_username: '{last_username}'"
+            )
+            query = {
+                "symbol": symbol,
+                "$or": [
+                    {"balance": {"$gt": "0.00000000"}},
+                    {"stake": {"$gt": "0.00000000"}},
+                ],
+            }
+            if last_username:
+                query["account"] = {"$gt": last_username}
 
-                for holder in batch:
-                    acct = holder.get("account")
-                    if acct == "null":
-                        # burned tokens
+            batch = he_api.find(
+                "tokens",
+                "balances",
+                query=query,
+                limit=page_size,
+                indexes=[{"index": "account", "descending": False}],
+            )
+            app.logger.debug(
+                f"Received batch of {len(batch) if batch else 0} records for symbol {symbol}"
+            )
+            if not batch:
+                app.logger.debug(f"No more batches for symbol {symbol}")
+                break
+
+            for holder in batch:
+                acct = holder.get("account")
+                if acct == "null":
+                    # burned tokens
+                    try:
+                        burned_balance = float(holder.get("balance", 0))
+                        app.logger.debug(
+                            f"Found burned balance: {burned_balance} for symbol {symbol}"
+                        )
+                    except (ValueError, TypeError):
+                        burned_balance = 0.0
+                    continue
+
+                if acct and acct not in seen_accounts:
+                    # Normalize common numeric fields to floats for consistent downstream formatting
+                    def _to_float(v):
                         try:
-                            burned_balance = float(holder.get("balance", 0))
-                            app.logger.debug(
-                                f"Found burned balance: {burned_balance} for symbol {symbol}"
-                            )
+                            return float(v if v is not None else 0)
                         except (ValueError, TypeError):
-                            burned_balance = 0.0
-                        continue
+                            return 0.0
 
-                    if acct and acct not in seen_accounts:
-                        # Normalize common numeric fields to floats for consistent downstream formatting
-                        def _to_float(v):
-                            try:
-                                return float(v if v is not None else 0)
-                            except (ValueError, TypeError):
-                                return 0.0
+                    for num_key in (
+                        "balance",
+                        "stake",
+                        "pendingUnstake",
+                        "delegationsIn",
+                        "delegationsOut",
+                        "pendingUndelegations",
+                    ):
+                        if num_key in holder:
+                            holder[num_key] = _to_float(holder.get(num_key))
 
-                        for num_key in (
-                            "balance",
-                            "stake",
-                            "pendingUnstake",
-                            "delegationsIn",
-                            "delegationsOut",
-                            "pendingUndelegations",
-                        ):
-                            if num_key in holder:
-                                holder[num_key] = _to_float(holder.get(num_key))
+                    balance_val = holder.get("balance", 0.0)
+                    stake_val = holder.get("stake", 0.0)
+                    holder["total"] = float(balance_val) + float(stake_val)
+                    richlist.append(holder)
+                    seen_accounts.add(acct)
 
-                        balance_val = holder.get("balance", 0.0)
-                        stake_val = holder.get("stake", 0.0)
-                        holder["total"] = float(balance_val) + float(stake_val)
-                        richlist.append(holder)
-                        seen_accounts.add(acct)
+            # Update last_username for next iteration
+            if batch:
+                last_username = batch[-1].get("account", "")
 
-                if len(batch) < page_size:
-                    app.logger.debug(
-                        f"Last batch for prefix '{prefix}', received {len(batch)} records, symbol {symbol}"
-                    )
-                    break
-                offset += page_size
+            # Check if we got fewer than requested (last page)
+            if len(batch) < page_size:
+                app.logger.debug(
+                    f"Last batch for symbol {symbol}, received {len(batch)} records"
+                )
+                break
 
-        # After looping through all prefixes, sort and return
+        # After collecting all batches, sort and return
         app.logger.info(
             f"Sorting richlist for symbol {symbol}, total holders: {len(richlist)}"
         )
