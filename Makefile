@@ -15,17 +15,16 @@ clean-pyc:
 	find . -name '__pycache__' -exec rm -fr {} +
 
 lint:
-	uv run ruff check --fix .
+	uv run ruff check --fix
 
 lint-html:
 	uvx djhtml templates
-	#npx prettier --plugin=prettier-plugin-jinja-template --parser=jinja-template --write **/*.html
 
 imports:
-	uv run ruff check --select I --fix .
+	uv run ruff check --select I --fix
 
 format:
-	uv run ruff format .
+	uv run ruff format
 
 git:
 	git push --all
@@ -36,3 +35,6 @@ check:
 
 dev-setup:
 	uv sync --dev
+
+run:
+	uv run python wsgi.py

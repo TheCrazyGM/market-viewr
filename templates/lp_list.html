@@ -6,10 +6,10 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>{{ token }} Liquidity Pools</h1>
     <div class="btn-group">
-      <a href="{{ url_for('market', token=token) }}" class="btn btn-outline-primary action-btn">
+      <a href="{{ url_for('main.market', token=token) }}" class="btn btn-outline-primary action-btn">
         <i class="bi bi-graph-up-arrow me-1"></i> Market
       </a>
-      <a href="{{ url_for('view', token=token) }}" class="btn btn-outline-secondary action-btn">
+      <a href="{{ url_for('main.view', token=token) }}" class="btn btn-outline-secondary action-btn">
         <i class="bi bi-info-circle me-1"></i> Info
       </a>
     </div>
@@ -72,7 +72,7 @@
                       <td class="number-cell text-end text-nowrap price-column text-success fw-bold" title="{{ p.base }} per {{ p.quote }}">{{ (p.basePrice | default(0) | float) | fmt(',.4f') }}</td>
                       <td class="number-cell text-end text-nowrap d-none d-lg-table-cell">{{ (p.totalShares | default(0) | float) | fmt(',.4f') }}</td>
                       <td>
-                        <a href="{{ url_for('lp_detail', base=p.base, quote=p.quote) }}" class="btn btn-sm btn-outline-warning action-btn">
+                        <a href="{{ url_for('pools.lp_detail', base=p.base, quote=p.quote) }}" class="btn btn-sm btn-outline-warning action-btn">
                           <i class="bi bi-droplet-half me-1"></i> View Pool
                         </a>
                       </td>

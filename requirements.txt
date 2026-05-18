@@ -1,7 +1,0 @@
-flask
-requests
-pandas
-plotly
-nectarengine
-Flask-Caching
-redis

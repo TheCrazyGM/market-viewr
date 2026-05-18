@@ -22,7 +22,7 @@
   <!-- Header -->
     <nav class="navbar navbar-expand-lg bg-body-tertiary shadow-sm sticky-top" id="appNavbar">
       <div class="container">
-        <a class="navbar-brand" href="{{ url_for('index') }}">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">
           <i class="bi bi-graph-up-arrow text-info me-2"></i>Market-Viewr
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -31,7 +31,7 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link action-btn" href="{{ url_for('index') }}" data-action="index">
+              <a class="nav-link action-btn" href="{{ url_for('main.index') }}" data-action="index">
                 <i class="bi bi-list-ul me-1"></i> Token List
               </a>
             </li>

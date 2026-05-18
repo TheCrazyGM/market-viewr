@@ -29,5 +29,11 @@ requires-python = ">=3.13"
 "Homepage" = "https://github.com/TheCrazyGM/market-viewr"
 "Bug Tracker" = "https://github.com/TheCrazyGM/market-viewr/issues"
 
+[tool.uv]
+package = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.uv.sources]
 nectarengine = { git = "https://github.com/thecrazygm/nectarengine" }

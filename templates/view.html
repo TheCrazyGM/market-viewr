@@ -5,7 +5,7 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>{{ token }} Information</h1>
-    <a href="{{ url_for('market', token=token) }}" class="btn btn-outline-primary action-btn" data-action="market"
+    <a href="{{ url_for('main.market', token=token) }}" class="btn btn-outline-primary action-btn" data-action="market"
        data-token="{{ token }}">
       <i class="bi bi-graph-up-arrow me-1"></i> View Market Data
     </a>
@@ -75,7 +75,7 @@
     </div>
     <div class="card-body">
       <div class="mb-3">
-        <a href="{{ url_for('full_richlist', token=token) }}" class="btn btn-outline-primary btn-sm">
+        <a href="{{ url_for('main.full_richlist', token=token) }}" class="btn btn-outline-primary btn-sm">
           <i class="bi bi-list-ol me-1"></i>View Full Richlist
         </a>
       </div>
