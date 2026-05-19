@@ -1,78 +1,96 @@
 # Market-Viewr
 
-A simple Flask web application for viewing candlestick market data and trade history for Hive-Engine smart contract tokens.
+A modern, modular Flask web application for viewing candlestick market data, trade history, and liquidity pool statistics for Hive-Engine smart contract tokens.
 
 ## Features
 
-- View a list of all Hive-Engine tokens
-- Display candlestick charts for token market data
-- View recent trade history with buy/sell indicators
-- View token information and richlist
-- Dark mode support with theme toggle
-- Responsive design with Bootstrap 5
+- **Token Explorer:** View a paginated list of all Hive-Engine tokens with search functionality.
+- **Market Data:** Interactive candlestick charts (Plotly) and detailed trade history.
+- **Richlists:** View top token holders and export full richlists to CSV.
+- **Liquidity Pools:** Explore market pools, view pool depth, prices, and top liquidity provider positions.
+- **Caching:** Robust caching layer using Redis (with SimpleCache fallback) for high performance.
+- **Responsive UI:** Modern design using Bootstrap 5 with native dark mode support.
 
-## Installation
+## Project Structure
 
-1. Clone this repository
-```bash
-git clone https://github.com/TheCrazyGM/market-viewr.git
-cd market-viewr
+The application follows a modular "Application Factory" pattern:
+
+```text
+src/viewr/
+├── api/          # Hive-Engine RPC and history API clients
+├── routes/       # Flask Blueprints (main, api, pools)
+├── services/     # Core business logic and data fetching
+├── utils/        # Formatting, security sanitization, and error handlers
+├── config.py     # Environment-based configuration
+└── extensions.py # Flask extension initializations (Cache)
 ```
 
-2. Create and activate a virtual environment (recommended)
-```bash
-# Create a virtual environment
-python3 -m venv .venv
+## Installation & Setup
 
-# Activate the virtual environment
-# On Linux/Mac:
-source .venv/bin/activate
-# On Windows:
-# .venv\Scripts\activate
-```
+This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable Python package and environment management.
 
-3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
+1. **Clone the repository:**
 
-4. Run the application
-```bash
-python app.py
-```
+   ```bash
+   git clone https://github.com/TheCrazyGM/market-viewr.git
+   cd market-viewr
+   ```
 
-5. Open your browser and navigate to `http://localhost:9000`
+2. **Initialize the environment:**
 
-## Routes
+   ```bash
+   # Sync dependencies and create .venv automatically
+   uv sync
+   ```
 
-- `/` - Home page with token list
-- `/market/<token>` - View candlestick chart and trade history for a specific token
-- `/view/<token>` - View token information and richlist
+3. **Configure Redis (Optional but Recommended):**
+   The app defaults to `redis://localhost:6379/1`. If Redis is unavailable, it will automatically fall back to an in-memory cache.
 
-## Technologies Used
+## Running the Application
 
-- Flask
-- Bootstrap 5
-- Plotly.js for interactive charts
-- Hive-Engine API for market data
-- Pandas for data processing
+You can use the provided `Makefile` or run it directly with `uv`.
 
-## Features in Detail
+- **Using Makefile:**
 
-### Trade History
-The application now displays recent trade history for each token, showing:
-- Date/time of the trade
-- Type of trade (BUY/SELL)
-- Account that made the trade
-- Quantity, price, and volume of the trade
+  ```bash
+  make run
+  ```
 
-### Dark Mode
-- Toggle between light and dark themes with the sun/moon button
-- Theme preference is saved in local storage
-- Charts and tables automatically adjust to the selected theme
+- **Using uv:**
+
+  ```bash
+  uv run python wsgi.py
+  ```
+
+The application will be available at `http://localhost:9000`.
+
+## Routes & API
+
+### User Interface
+
+- `/` - Home page with token list and search.
+- `/market/<token>` - Interactive charts and recent trade history.
+- `/view/<token>` - Detailed token info and top 100 richlist.
+- `/richlist/<token>` - Full searchable richlist.
+- `/lp/<token>` - List of liquidity pools involving the token.
+- `/lp/<base>/<quote>` - Detailed liquidity pool statistics and provider positions.
+
+### API Endpoints
+
+- `/health` - System health check and dependency status.
+- `/api/chart/<token>/<timeframe>` - Returns Plotly JSON for market charts.
+- `/api/orderbook/<token>` - Returns complete buy/sell order books.
+
+## Development
+
+- **Linting:** `make lint` (uses Ruff)
+- **Formatting:** `uv run ruff format .`
+- **Cache Management:**
+  - `uv run python clear_cache.py` - Manually purge all cached data.
+  - `uv run python warm_cache.py` - Pre-fetch and cache all token richlists.
 
 ## License
 
-See the LICENSE file for details.
+See the `LICENSE` file for details.
 
 ## Made with ❤️ by thecrazygm
