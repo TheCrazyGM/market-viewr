@@ -3,13 +3,23 @@
 {% block title %}Market-Viewr - LP {{ token_pair }}{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    {% set base = token_pair.split(':')[0] %}
-    {% set quote = token_pair.split(':')[1] %}
-    <h1>Liquidity Pool: {{ token_pair }}</h1>
-    <a href="{{ url_for('pools.lp_list', token=base) }}" class="btn btn-outline-secondary action-btn">
-      <i class="bi bi-arrow-left me-1"></i> Back to Pools
-    </a>
+  <div class="p-4 mb-4 rounded-4 position-relative overflow-hidden border" style="background: linear-gradient(135deg, rgba(var(--bs-body-color-rgb), 0.03) 0%, rgba(var(--bs-body-color-rgb), 0.01) 100%); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05);">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      {% set base = token_pair.split(':')[0] %}
+      {% set quote = token_pair.split(':')[1] %}
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary bg-opacity-10 rounded-3 p-3 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+          <i class="bi bi-droplet-half text-primary fs-3"></i>
+        </div>
+        <div>
+          <h1 class="h2 fw-bold mb-1">{{ base }} <span class="text-muted opacity-50">/</span> {{ quote }}</h1>
+          <p class="text-muted small mb-0">Liquidity Pool Reserves, Prices, and Provider Positions</p>
+        </div>
+      </div>
+      <a href="{{ url_for('pools.lp_list', token=base) }}" class="btn btn-outline-secondary action-btn">
+        <i class="bi bi-arrow-left me-1"></i> Back to Pools
+      </a>
+    </div>
   </div>
 
   <div class="row">
