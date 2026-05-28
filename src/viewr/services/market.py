@@ -53,7 +53,9 @@ def get_market_data(symbol, days=30):
     try:
         response = requests.get(url, params=params)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            cutoff = datetime.now().timestamp() - days * 24 * 60 * 60
+            return [d for d in data if d.get("timestamp", 0) >= cutoff]
     except Exception as e:
         logger.error(f"Error fetching market data for {symbol}: {e}")
     return []
