@@ -34,4 +34,4 @@ package = true
 where = ["src"]
 
 [tool.uv.sources]
-nectarengine = { git = "https://github.com/thecrazygm/nectarengine" }
+nectarengine = { git = "https://github.com/srbde/nectarengine" }
